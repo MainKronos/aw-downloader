@@ -37,6 +37,7 @@ export interface SonarrEpisode {
   seasonNumber: number
   episodeNumber: number
   title: string
+  overview?: string
   airDateUtc: string | null
   monitored: boolean
   hasFile: boolean
@@ -209,6 +210,34 @@ export class SonarrService {
       return response.data
     } catch (error) {
       logger.error('SonarrService', `Error fetching series ${seriesId}`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Get a specific episode by series ID, season number, and episode number
+   * This does NOT use cache to ensure we get the latest file ID after rescan
+   * @param seriesId - The Sonarr series ID
+   * @param seasonNumber - The season number
+   * @param episodeNumber - The episode number
+   * @returns The episode data or null if not found
+   */
+  async getEpisode(episodeId: number): Promise<SonarrEpisode> {
+    this.ensureInitialized()
+    this.ensureHealthy()
+
+    try {
+      const response = await axios.get<SonarrEpisode>(
+        `${this.sonarrUrl}/api/v3/episode/${episodeId}`,
+        {
+          headers: {
+            'X-Api-Key': this.sonarrToken,
+          },
+        }
+      )
+      return response.data
+    } catch (error) {
+      logger.error('SonarrService', `Error fetching episode ${episodeId}`, error.message)
       throw error
     }
   }
@@ -439,6 +468,38 @@ export class SonarrService {
     } catch (error) {
       logger.error('SonarrService', `Failed to trigger rescan for series ${seriesId}`, error)
       throw new Error(`Failed to rescan series: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  /**
+   * Trigger a rename for a specific episode file
+   * This tells Sonarr to rename the episode file according to the naming scheme
+   * @param fileId - The episode file ID from Sonarr
+   */
+  async renameEpisodeFile(fileId: number): Promise<void> {
+    this.ensureInitialized()
+    this.ensureHealthy()
+
+    try {
+      logger.debug('SonarrService', `Triggering rename for file ${fileId}`)
+      
+      await axios.post(
+        `${this.sonarrUrl}/api/v3/command`,
+        {
+          name: 'RenameFiles',
+          files: [fileId],
+        },
+        {
+          headers: {
+            'X-Api-Key': this.sonarrToken!,
+          },
+        }
+      )
+
+      logger.success('SonarrService', `Successfully triggered rename for file ${fileId}`)
+    } catch (error) {
+      logger.error('SonarrService', `Failed to trigger rename for file ${fileId}`, error)
+      throw new Error(`Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }

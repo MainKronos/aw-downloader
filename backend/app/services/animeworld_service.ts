@@ -54,8 +54,9 @@ export class AnimeworldService {
     }
     
     const baseUrl = await Config.get('animeworld_base_url')
-    this.baseUrlCache = (baseUrl || 'https://www.animeworld.ac').replace(/^\/+|\/+$/g, '') 
-    return this.baseUrlCache
+    const url = (baseUrl || 'https://www.animeworld.ac').replace(/^\/+|\/+$/g, '')
+    this.baseUrlCache = url
+    return url
   }
 
   /**
@@ -139,16 +140,12 @@ export class AnimeworldService {
 
       // Use POST with keyword as query parameter (URL encoded)
       const encodedKeyword = encodeURIComponent(keyword)
-      logger.debug('AnimeWorld', `Chiamata API search: POST ${searchUrl}?keyword=${encodedKeyword}`, { headers })
       const response = await this.gotInstance.post(`${searchUrl}?keyword=${encodedKeyword}`, {
         headers,
       })
-      console.log(response)
-      logger.debug('AnimeWorld', `Risposta API search ricevuta (${response.statusCode})`)
 
       // Parse JSON manually
       const data = JSON.parse(response.body) as AnimeSearchResponse
-      logger.info('AnimeWorld', `Trovati ${data.animes?.length || 0} risultati per "${keyword}"`)
       return data.animes || []
     } catch (error) {
       logger.error('AnimeWorld', `Errore ricerca anime "${keyword}"`, error)

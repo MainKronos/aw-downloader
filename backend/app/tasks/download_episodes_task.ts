@@ -1,5 +1,5 @@
 import { getDownloadQueue } from '#services/download_queue'
-import { getSonarrService } from '#services/sonarr_service'
+import { getSonarrService, SonarrEpisode, SonarrSeries } from '#services/sonarr_service'
 import Config from '#models/config'
 import RootFolder from '#models/root_folder'
 import Series from '#models/series'
@@ -9,6 +9,7 @@ import path from 'path'
 import axios from 'axios'
 import app from '@adonisjs/core/services/app'
 import { logger } from '#services/logger_service'
+import Episode from '#models/episode'
 
 export interface DownloadEpisodeParams {
   episodeId: number
@@ -127,11 +128,10 @@ export class DownloadEpisodesTask {
       // Clean up temp files
       await fs.rm(tempDir, { recursive: true, force: true })
       
-      console.log(`Download completed: ${params.seriesTitle} S${params.seasonNumber}E${params.episodeNumber}`)
-      console.log(`Saved to: ${outputPath}`)
-
       // Copy file to Sonarr folder and trigger rescan
       await this.copyToSonarrAndRescan(params, outputPath)
+
+      await this.renameEpisodeFile(params)  
       
       // Mark as completed
       queue.completeItem(queueItemId)
@@ -268,13 +268,11 @@ export class DownloadEpisodesTask {
         // Replace the root folder path with the mapped path
         const relativePath = sonarrPath.substring(rootFolder.path.length)
         const localPath = path.join(rootFolder.mappedPath!, relativePath)
-        logger.info('DownloadTask', `Mapped Sonarr path ${sonarrPath} to local path ${localPath}`)
         return localPath
       }
     }
 
     // If no mapping found, return the original path
-    logger.warning('DownloadTask', `No mapping found for Sonarr path ${sonarrPath}, using original path`)
     return sonarrPath
   }
 
@@ -333,8 +331,41 @@ export class DownloadEpisodesTask {
 
       logger.success('DownloadTask', `Triggered Sonarr rescan for series ${series.sonarrId}`)
 
+
     } catch (error) {
       logger.error('DownloadTask', 'Failed to copy file to Sonarr and trigger rescan', error)
+      // Don't throw - the download was successful, just the copy/rescan failed
+    }
+  }
+
+  /**
+   * Copy downloaded file to Sonarr folder and trigger rescan
+   */
+  private static async renameEpisodeFile({seriesTitle, episodeId, episodeNumber, seasonNumber}: DownloadEpisodeParams): Promise<void> {
+    try {
+      // Check if auto-rename is enabled
+      const autoRename = await Config.get<boolean>('sonarr_auto_rename')
+      if (autoRename) {
+
+        const sonarrService = getSonarrService()
+        await sonarrService.initialize()
+
+        const { sonarrId } = await Episode.findOrFail(episodeId)
+
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const episode = await sonarrService.getEpisode(sonarrId)
+        
+        if (episode.episodeFileId) {
+          await sonarrService.renameEpisodeFile(episode.episodeFileId)
+          logger.success('DownloadTask', `Successfully renamed ${seriesTitle} S${seasonNumber}E${episodeNumber}`)
+        } else {
+          logger.warning('DownloadTask', `Episode file ID not found for ${seriesTitle} S${seasonNumber}E${episodeNumber}, skipping rename`)
+        }
+      }
+
+    } catch (error) {
+      logger.error('DownloadTask', 'Failed to rename episode file.', error.message)
       // Don't throw - the download was successful, just the copy/rescan failed
     }
   }

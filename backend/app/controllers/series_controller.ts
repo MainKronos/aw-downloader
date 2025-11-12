@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Series from '#models/series'
 import Season from '#models/season'
+import { MetadataSyncService } from '#services/metadata_sync_service'
 import path from 'path'
 import fs from 'fs/promises'
 
@@ -144,6 +145,28 @@ export default class SeriesController {
       return response.download(posterPath)
     } catch (error) {
       return response.notFound({ message: 'Series not found' })
+    }
+  }
+
+  /**
+   * Sync metadata for a single series
+   */
+  async syncMetadata({ params, response }: HttpContext) {
+    try {
+      const seriesId = params.id
+      const metadataSyncService = new MetadataSyncService()
+      
+      await metadataSyncService.syncSeries(seriesId)
+      
+      return response.ok({ 
+        message: 'Metadata synced successfully',
+        seriesId 
+      })
+    } catch (error) {
+      return response.badRequest({ 
+        message: 'Error syncing metadata', 
+        error: error.message 
+      })
     }
   }
 }

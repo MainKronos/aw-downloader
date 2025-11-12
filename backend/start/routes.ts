@@ -30,6 +30,7 @@ router.group(() => {
   router.get('/:id', [SeriesController, 'show'])
   router.get('/:id/poster', [SeriesController, 'getPoster'])
   router.post('/', [SeriesController, 'store'])
+  router.post('/:id/sync-metadata', [SeriesController, 'syncMetadata'])
   router.put('/:id', [SeriesController, 'update'])
   router.delete('/:id', [SeriesController, 'destroy'])
 }).prefix('/api/series')
