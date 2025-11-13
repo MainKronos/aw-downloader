@@ -28,6 +28,7 @@ export interface SonarrSeries {
   year: number
   network: string
   genres: string[]
+  tags: number[]
   images: Array<{ coverType: string; url: string; remoteUrl: string }>
 }
 
@@ -67,6 +68,11 @@ export interface SonarrRootFolder {
   freeSpace: number
   totalSpace: number
   unmappedFolders?: Array<{ name: string; path: string }>
+}
+
+export interface SonarrTag {
+  id: number
+  label: string
 }
 
 interface SeriesCache {
@@ -373,6 +379,31 @@ export class SonarrService {
       throw error
     }
   }
+
+  /**
+   * Get all tags from Sonarr
+   */
+  async getTags(): Promise<SonarrTag[]> {
+    this.ensureInitialized()
+    this.ensureHealthy()
+
+    try {
+      const response = await axios.get<SonarrTag[]>(
+        `${this.sonarrUrl}/api/v3/tag`,
+        {
+          headers: {
+            'X-Api-Key': this.sonarrToken,
+          },
+        }
+      )
+
+      return response.data
+    } catch (error) {
+      logger.error('SonarrService', 'Error fetching tags from Sonarr', error.message)
+      throw error
+    }
+  }
+
 
   /**
    * Test Sonarr connection and update health status

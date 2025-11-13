@@ -28,6 +28,11 @@ export class FetchWantedTask extends BaseTask {
     // Check if we should filter only anime series
     const filterAnimeOnly = await Config.get<boolean>('sonarr_filter_anime_only') ?? true
 
+    // Get tag filtering configuration
+    const tagsMode = await Config.get<string>('sonarr_tags_mode')
+    const tagsConfig = await Config.get<Array<{ value: string; label: string }>>('sonarr_tags')
+    const tagIds = tagsConfig?.map(tag => parseInt(tag.value)) || []
+
     // Fetch wanted/missing episodes from Sonarr
     const response = await this.sonarrService.getWantedMissingEpisodes(100, 'airDateUtc', 'descending')
 
@@ -35,6 +40,18 @@ export class FetchWantedTask extends BaseTask {
     this.wantedEpisodes = response.records
       .filter((ep) => ep.seriesId && ep.seasonNumber !== undefined && ep.episodeNumber !== undefined)
       .filter((ep) => !filterAnimeOnly || ep.series?.seriesType === "anime" )
+      .filter((ep) => {
+        if ( !tagsMode || tagIds.length === 0 ) {
+          return true
+        }
+        const seriesTags = ep.series.tags || []
+        if (tagsMode === 'blacklist') {
+          return !tagIds.some(tagId => seriesTags.includes(tagId))
+        } else if ( tagsMode === 'whitelist' ) {
+          return tagIds.some(tagId => seriesTags.includes(tagId))
+        }
+        return true
+      })
 
     logger.info('FetchWanted', `Found ${this.wantedEpisodes.length} wanted/missing episodes`)
 

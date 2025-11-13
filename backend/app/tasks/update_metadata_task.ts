@@ -30,9 +30,28 @@ export class UpdateMetadataTask extends BaseTask {
 
     const filterAnimeOnly = await Config.get<boolean>('sonarr_filter_anime_only') ?? true
 
+    // Get tag filtering configuration
+    const tagsMode = await Config.get<string>('sonarr_tags_mode')
+    const tagsConfig = await Config.get<Array<{ value: string; label: string }>>('sonarr_tags')
+    const tagIds = tagsConfig?.map(tag => parseInt(tag.value)) || []
+
     const allSeries = await this.sonarrService.getAllSeries()
     const monitoredSeries = allSeries
+        // Filter only monitored series or anime if configured
         .filter((show) => show.monitored && (!filterAnimeOnly || show.seriesType.toLowerCase() === 'anime' ))
+        // Apply tag filtering if configured
+        .filter((show) => {
+          if ( !tagsMode || tagIds.length === 0 ) {
+            return true
+          }
+          if (tagsMode === 'blacklist') {
+            const seriesTags = show.tags || []
+            return !tagIds.some(tagId => seriesTags.includes(tagId))
+          } else if ( tagsMode === 'whitelist' ) {
+            const seriesTags = show.tags || []
+            return tagIds.some(tagId => seriesTags.includes(tagId))
+          }
+        })
 
     logger.info('UpdateMetadata', `Found ${monitoredSeries.length} monitored series to sync`)
 

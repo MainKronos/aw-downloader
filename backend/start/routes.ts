@@ -17,6 +17,7 @@ const DownloadQueueController = () => import('#controllers/download_queue_contro
 const LogsController = () => import('#controllers/logs_controller')
 const RootFoldersController = () => import('#controllers/root_folders_controller')
 const HealthController = () => import('#controllers/health_controller')
+const SonarrController = () => import('#controllers/sonarr_controller')
 
 router.get('/', async () => {
   return {
@@ -92,3 +93,8 @@ router.group(() => {
   router.post('/sonarr/force', [HealthController, 'forceSonarrCheck'])
   router.get('/sonarr/status', [HealthController, 'getSonarrStatus'])
 }).prefix('/api/health')
+
+// Sonarr routes
+router.group(() => {
+  router.get('/tags', [SonarrController, 'getTags'])
+}).prefix('/api/sonarr')
