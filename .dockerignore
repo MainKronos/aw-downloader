@@ -1,0 +1,74 @@
+# Node modules
+**/node_modules
+**/npm-debug.log
+**/.npm
+
+# Build outputs
+backend/build
+frontend/out
+frontend/.next
+
+# Development files
+**/.git
+**/.gitignore
+**/.vscode
+**/.idea
+**/.DS_Store
+
+# Environment files (should be provided at runtime)
+**/.env
+**/.env.*
+
+# Testing
+**/coverage
+**/.nyc_output
+
+# Temporary files
+backend/tmp/**
+backend/storage/downloads/**
+backend/storage/posters/**
+!backend/tmp/.gitkeep
+!backend/storage/downloads/.gitkeep
+!backend/storage/posters/.gitkeep
+
+# Database (will be mounted as volume)
+backend/tmp/db.sqlite3
+backend/database/*.sqlite*
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# Editor configs
+.editorconfig
+.prettierrc
+.eslintrc*
+tsconfig.json
+
+
+# Adonis default .gitignore ignores
+/backend/node_modules
+/backend/build
+/backend/coverage
+/backend/.vscode
+/backend/.DS_STORE
+/backend/.env
+/backend/tmp
+/backend/storage
+
+# Additional .gitignore ignores (any custom file you wish)
+.idea
+
+# Additional good to have ignores for dockerignore
+Dockerfile*
+docker-compose*
+.dockerignore
+*.md
+.git
+.gitignore
+

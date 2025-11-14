@@ -89,7 +89,7 @@ export abstract class BaseTask {
 
       logger.success('Task', `Task ${this.name} completed successfully`)
     } catch (error) {
-      logger.error('Task', `Error executing task ${this.name}`, error)
+      logger.error('Task', `Error executing task ${this.name}`, error.message)
 
       this.updateStatus({
         status: 'error',

@@ -8,17 +8,23 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+!.env.example
 
 # Build outputs
 dist/
 build/
 .next/
 out/
+backend/build/
+frontend/out/
 
 # Database
 *.db
 *.sqlite
 *.sqlite3
+
+# Docker volumes
+data/
 
 # IDE
 .vscode/
@@ -42,3 +48,7 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Storage (downloads, posters, etc.)
+backend/storage/*
+backend/tmp/*

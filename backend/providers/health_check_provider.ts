@@ -27,6 +27,9 @@ export default class HealthCheckProvider {
    * The process has been started
    */
   async ready() {
+    if (this.app.getEnvironment() !== 'web') {
+      return;
+    }
     // Start cron job to check Sonarr health every minute
     this.cronJob = cron.schedule('* * * * *', async () => {
       try {
@@ -49,6 +52,9 @@ export default class HealthCheckProvider {
    * Preparing to shutdown the app
    */
   async shutdown() {
+    if (this.app.getEnvironment() !== 'web') {
+      return;
+    }
     if (this.cronJob) {
       this.cronJob.stop()
     }

@@ -1,15 +1,15 @@
-import { getDownloadQueue } from '#services/download_queue'
-import { getSonarrService, SonarrEpisode, SonarrSeries } from '#services/sonarr_service'
 import Config from '#models/config'
+import Episode from '#models/episode'
 import RootFolder from '#models/root_folder'
 import Series from '#models/series'
-import fs from 'fs/promises'
-import { createWriteStream } from 'fs'
-import path from 'path'
-import axios from 'axios'
-import app from '@adonisjs/core/services/app'
+import { getDownloadQueue } from '#services/download_queue'
 import { logger } from '#services/logger_service'
-import Episode from '#models/episode'
+import { getSonarrService } from '#services/sonarr_service'
+import app from '@adonisjs/core/services/app'
+import axios from 'axios'
+import { createWriteStream } from 'fs'
+import fs from 'fs/promises'
+import path from 'path'
 
 export interface DownloadEpisodeParams {
   episodeId: number
