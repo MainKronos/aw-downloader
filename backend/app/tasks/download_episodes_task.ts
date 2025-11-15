@@ -59,9 +59,6 @@ export class DownloadEpisodesTask {
   static async execute(params: DownloadEpisodeParams, queueItemId: string): Promise<void> {
     const queue = getDownloadQueue()
     
-    console.log(`Starting download for: ${params.seriesTitle} S${params.seasonNumber}E${params.episodeNumber}`)
-    console.log(`Download URL: ${params.downloadUrl}`)
-
     try {
       // Check if cancelled before starting
       if (this.isCancelled(queueItemId)) {
@@ -73,9 +70,8 @@ export class DownloadEpisodesTask {
       // Get max workers from config
       const maxWorkers = await this.getMaxWorkers()
       
-      // Get file size from HEAD request
-      const fileSize = await this.getFileSize(params.downloadUrl)
-      console.log(`File size: ${(fileSize / 1024 / 1024).toFixed(2)} MB`)
+      // Get file size and extension from URL
+      const { extension: fileExtension, size: fileSize } = await this.getFileInfo(params.downloadUrl)
       
       // Check if cancelled after getting file size
       if (this.isCancelled(queueItemId)) {
@@ -120,7 +116,7 @@ export class DownloadEpisodesTask {
       console.log(`Merging chunks...`)
       const outputPath = app.makePath(
         'storage/downloads',
-        `${params.seriesTitle}_S${params.seasonNumber}E${params.episodeNumber}.mkv`
+        `${params.seriesTitle}_S${params.seasonNumber}E${params.episodeNumber}.${fileExtension}`
       )
       await fs.mkdir(path.dirname(outputPath), { recursive: true })
       await this.mergeChunks(chunks, outputPath)
@@ -162,6 +158,48 @@ export class DownloadEpisodesTask {
       throw new Error('Could not determine file size')
     }
     return parseInt(contentLength)
+  }
+
+  /**
+   * Get file extension from URL or Content-Disposition header
+   */
+  private static async getFileInfo(url: string): Promise<{extension: string, size: number}> {
+    const response = await axios.head(url)
+
+    const contentLength = response.headers['content-length']
+    if (!contentLength) {
+      throw new Error('Could not determine file size')
+    }
+    const fileSize = parseInt(contentLength)
+
+    
+
+    // Try to get filename from Content-Disposition header
+    let extension;
+    const contentDisposition = response.headers['content-disposition']
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (filenameMatch && filenameMatch[1]) {
+        const filename = filenameMatch[1].replace(/['"]/g, '')
+        const ext = path.extname(filename)
+        if (ext) extension = ext
+      }
+    }
+    
+    // Fallback: extract from URL
+    const urlPath = new URL(url).pathname
+    extension = path.extname(urlPath)
+    if (!extension) {
+      throw new Error('Could not determine file extension')
+    }
+    
+
+    
+    // Default to .mkv if nothing found
+    return {
+      extension, 
+      size: fileSize
+    }
   }
   
   /**

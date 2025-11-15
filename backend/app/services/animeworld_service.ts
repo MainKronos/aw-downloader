@@ -210,8 +210,9 @@ export class AnimeworldService {
       const animeName = normalizeTitle(anime.name)
       
       // Check if this is a "Part X" of the base title
-      // Patterns: "Title Part 2", "Title Part2", "Title 2", etc.
-      const partPattern = new RegExp(`^${baseTitle}\\s*(?:part)?\\s*(\\d+)$`, 'i')
+      // Patterns: "Title Part 2", "Title Part2"
+      // Note: "part" keyword is required to avoid matching sequential seasons      
+      const partPattern = new RegExp(`^${baseTitle}\\s*part\\s*(\\d+)$`, 'i')
       const match = animeName.match(partPattern)
       
       if (match) {

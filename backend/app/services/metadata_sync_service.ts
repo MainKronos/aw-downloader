@@ -16,7 +16,7 @@ export class MetadataSyncService {
   /**
    * Sync metadata for a single series
    */
-  async syncSeries(seriesId: number): Promise<void> {
+  async syncSeries(seriesId: number, refreshUrls: boolean = false): Promise<void> {
     await this.sonarrService.initialize()
     
     // Get series from database
@@ -32,7 +32,7 @@ export class MetadataSyncService {
     logger.info('MetadataSync', `Syncing series: ${sonarrShow.title}`)
     
     await this.syncSeriesData(series, sonarrShow)
-    await this.syncSeasons(series.id, sonarrShow.id, sonarrShow.seasons)
+    await this.syncSeasons(series.id, sonarrShow.id, sonarrShow.seasons, refreshUrls)
     
     logger.success('MetadataSync', `Successfully synced series: ${sonarrShow.title}`)
   }
@@ -92,7 +92,8 @@ export class MetadataSyncService {
   private async syncSeasons(
     seriesId: number,
     sonarrSeriesId: number,
-    sonarrSeasons: SonarrSeries['seasons']
+    sonarrSeasons: SonarrSeries['seasons'],
+    refreshUrls: boolean = false
   ): Promise<void> {
     for (const sonarrSeason of sonarrSeasons) {
       // Skip specials (season 0)
@@ -138,7 +139,7 @@ export class MetadataSyncService {
       }
 
       // Try to find AnimeWorld URL if not already set
-      if (!season.downloadUrls || season.downloadUrls.length === 0) {
+      if (!season.downloadUrls || season.downloadUrls.length === 0 || refreshUrls) {
         await this.findAnimeWorldUrls(seriesId, season.id, sonarrSeason.seasonNumber)
       }
 
