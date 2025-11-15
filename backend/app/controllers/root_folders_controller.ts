@@ -99,7 +99,7 @@ export default class RootFoldersController {
         rootFolders,
       })
     } catch (error) {
-      logger.error('RootFoldersController', 'Error syncing root folders', error)
+      logger.error('RootFoldersController', 'Error syncing root folders', error?.message)
       return response.internalServerError({
         message: 'Error syncing root folders from Sonarr',
         error: error instanceof Error ? error.message : 'Unknown error',
