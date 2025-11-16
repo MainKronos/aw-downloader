@@ -10,10 +10,20 @@ export default class Config extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => {
+      if ( value === null ) {
+        return null
+      }
       return JSON.stringify(value)
     },
     consume: (value: string | null) => {
-      return JSON.parse(value || 'null')
+      if ( !value ) {
+        return null
+      }
+      try {
+        return JSON.parse(value)
+      } catch {
+        return null
+      }
     },
   })
   declare value: string | null
@@ -33,7 +43,7 @@ export default class Config extends BaseModel {
     if (!config?.value) {
       return null
     }
-    return JSON.parse(config.value) as T
+    return config.value as T
   }
 
   /**
@@ -41,8 +51,6 @@ export default class Config extends BaseModel {
    * Automatically serializes the value as JSON
    */
   static async set(key: string, value: any): Promise<Config> {
-    const jsonValue = JSON.stringify(value)
-    const config = await Config.updateOrCreate({ key }, { value: jsonValue })
-    return config
+    return await Config.updateOrCreate({ key }, { value })
   }
 }

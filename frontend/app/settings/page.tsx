@@ -27,6 +27,12 @@ import {
 } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+const languageLabels: Record<string, string> = {
+  dub: "Doppiato",
+  sub: "Sottotitolato",
+  dub_fallback_sub: "Doppiato (fallback su sub)"
+};
+
 // Interval steps: 15, 30, 60, 120, 240, 480, 960, 1920 (in minutes)
 const INTERVAL_STEPS = [15, 30, 60, 120, 240, 720, 1440, 2880];
 
@@ -78,6 +84,7 @@ interface Configs {
   sonarr_tags_mode?: string;
   sonarr_tags?: Array<{ label: string; value: string }>;
   animeworld_base_url?: string;
+  preferred_language?: string;
   download_max_workers?: string;
   concurrent_downloads?: string;
 }
@@ -90,6 +97,7 @@ interface ConfigInputs {
   sonarr_tags_mode: string;
   sonarr_tags: string[];
   animeworld_base_url: string;
+  preferred_language: string;
   download_max_workers: string;
   concurrent_downloads: string;
 }
@@ -107,6 +115,7 @@ export default function ImpostazioniPage() {
     sonarr_tags_mode: "blacklist",
     sonarr_tags: [],
     animeworld_base_url: "",
+    preferred_language: "sub",
     download_max_workers: "2",
     concurrent_downloads: "2",
   });
@@ -249,6 +258,7 @@ export default function ImpostazioniPage() {
         sonarr_tags_mode: data.sonarr_tags_mode || "blacklist",
         sonarr_tags: parsedTags.map((t: any) => String(t.value || t)),
         animeworld_base_url: data.animeworld_base_url || "",
+        preferred_language: data.preferred_language || "sub",
         download_max_workers: data.download_max_workers || "2",
         concurrent_downloads: data.concurrent_downloads || "2",
       });
@@ -369,13 +379,27 @@ export default function ImpostazioniPage() {
         const tag = sonarrTags.find(t => t.value === value);
         return { value, label: tag?.label || value };
       });
-      await apiUpdateConfig("sonarr_tags", JSON.stringify(tagObjects));
+      await apiUpdateConfig("sonarr_tags", tagObjects);
       setConfigs((prev) => ({ ...prev, sonarr_tags: tagObjects }));
       toast.success("Tag aggiornati");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Errore salvataggio tag");
       // Revert on error
       setConfigInputs((prev) => ({ ...prev, sonarr_tags: configInputs.sonarr_tags }));
+    }
+  };
+
+  const handlePreferredLanguageChange = async (value: string) => {
+    setConfigInputs((prev) => ({ ...prev, preferred_language: value }));
+
+    try {
+      await apiUpdateConfig("preferred_language", value);
+      setConfigs((prev) => ({ ...prev, preferred_language: value }));
+      toast.success(`Lingua preferita impostata su: ${languageLabels[value] || value}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Errore salvataggio lingua preferita");
+      // Revert on error
+      setConfigInputs((prev) => ({ ...prev, preferred_language: configInputs.preferred_language }));
     }
   };
 
@@ -401,6 +425,7 @@ export default function ImpostazioniPage() {
           sonarr_tags_mode: "Modalità Tag",
           sonarr_tags: "Tag",
           animeworld_base_url: "URL Base AnimeWorld",
+          preferred_language: "Lingua Preferita",
           download_max_workers: "Worker Download",
           concurrent_downloads: "Download Simultanei",
         };
@@ -810,6 +835,29 @@ export default function ImpostazioniPage() {
                       ✓ URL configurato: {configs.animeworld_base_url}
                     </p>
                   )}
+                </div>
+
+                {/* Preferred Language Selector */}
+                <div className="flex items-start justify-between space-x-4">
+                  <div className="space-y-1 flex-1">
+                    <Label htmlFor="preferred-language">Lingua preferita</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Seleziona la lingua preferita per gli episodi
+                    </p>
+                  </div>
+                  <Select
+                    value={configInputs.preferred_language}
+                    onValueChange={handlePreferredLanguageChange}
+                  >
+                    <SelectTrigger id="preferred-language" className="w-[200px]">
+                      <SelectValue placeholder="Seleziona lingua" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languageLabels && Object.entries(languageLabels).map(([code, label]) => (
+                        <SelectItem key={code} value={code}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="space-y-4">

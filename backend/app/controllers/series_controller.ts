@@ -99,7 +99,7 @@ export default class SeriesController {
   async update({ params, request, response }: HttpContext) {
     try {
       const series = await Series.findOrFail(params.id)
-      const data = request.only(['title', 'description', 'status', 'totalSeasons', 'posterUrl'])
+      const data = request.only(['title', 'description', 'status', 'totalSeasons', 'posterUrl', 'preferredLanguage'])
       series.merge(data)
       await series.save()
       return response.ok(series)

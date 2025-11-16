@@ -44,6 +44,9 @@ export default class Series extends BaseModel {
   declare network: string | null
 
   @column()
+  declare preferredLanguage: string
+
+  @column()
   declare deleted: boolean
 
   @hasMany(() => Season)

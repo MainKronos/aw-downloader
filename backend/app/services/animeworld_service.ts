@@ -11,6 +11,7 @@ export interface AnimeSearchResult {
   link: string
   identifier: string
   anilistId: number
+  dub: number // 0 = sub, 1 = dub
 }
 
 export interface AnimeSearchResponse {
@@ -148,7 +149,7 @@ export class AnimeworldService {
       const data = JSON.parse(response.body) as AnimeSearchResponse
       return data.animes || []
     } catch (error) {
-      logger.error('AnimeWorld', `Errore ricerca anime "${keyword}"`, error)
+      logger.error('AnimeWorld', `Errore ricerca anime "${keyword}"`, error.message)
       throw new Error(`Failed to search anime: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
@@ -186,36 +187,50 @@ export class AnimeworldService {
    * @returns Array of matching animes (base + parts) ordered by ID, or null
    */
   findBestMatchWithParts(searchResults: AnimeSearchResult[], targetTitle: string): AnimeSearchResult[] | null {
-    const bestMatch = this.findBestMatch(searchResults, targetTitle)
-    
-    if (!bestMatch) {
-      return null
-    }
-
-    // Find all related parts (e.g., "Sakamoto Days Part 2", "Sakamoto Days Part 3")
     const normalizeTitle = (title: string): string => {
       return title
         .toLowerCase()
+        // Remove language in parentheses e.g., "Title (ita)" or "Title (sub ita)"
+        .replace(/(\(\S*\))/g, '')
         .replace(/[^a-z0-9\s]/gi, '')
         .trim()
     }
 
+    const normalizedTarget = normalizeTitle(targetTitle)
+
+    const bestMatch = searchResults.find((anime) => {
+      const animeName = normalizeTitle(anime.name)
+      const normalizedJTitle = normalizeTitle(anime.jtitle)
+      
+      const partPattern = new RegExp(`^${normalizedTarget}$`, 'i')
+      const match = animeName.match(partPattern) || normalizedJTitle.match(partPattern)
+      
+      return match
+    })
+
+    if (!bestMatch) {
+      return null
+    }
+
     const baseTitle = normalizeTitle(bestMatch.name)
+    const baseJTitle = normalizeTitle(bestMatch.jtitle)
+
     const parts: AnimeSearchResult[] = [bestMatch]
 
-    // Look for parts in search results
     searchResults.forEach((anime) => {
       if (anime.id === bestMatch.id) return // Skip the base match
-
+      
       const animeName = normalizeTitle(anime.name)
+      const normalizedJTitle = normalizeTitle(anime.jtitle)
       
       // Check if this is a "Part X" of the base title
-      // Patterns: "Title Part 2", "Title Part2"
+      // Patterns: "Title Part 2", "Title Part2", "Title Part 2 ita"
       // Note: "part" keyword is required to avoid matching sequential seasons      
-      const partPattern = new RegExp(`^${baseTitle}\\s*part\\s*(\\d+)$`, 'i')
-      const match = animeName.match(partPattern)
-      
-      if (match) {
+      const titlePattern = new RegExp(`^${baseTitle} \\s*(part[e]? (\\d+)).*`, 'i')
+      const jtitlePattern = new RegExp(`^${baseJTitle} \\s*(part[e]? (\\d+)).*`, 'i')
+      const match = animeName.match(titlePattern) || normalizedJTitle.match(jtitlePattern)
+
+      if ( match ) {
         parts.push(anime)
       }
     })
@@ -228,57 +243,6 @@ export class AnimeworldService {
     })
 
     return parts
-  }
-
-  /**
-   * Find best matching anime from search results
-   * Tries to match by comparing titles
-   * @param searchResults - Array of search results
-   * @param targetTitle - The title to match against
-   * @returns The best matching anime or null
-   */
-  findBestMatch(searchResults: AnimeSearchResult[], targetTitle: string): AnimeSearchResult | null {
-    if (searchResults.length === 0) {
-      return null
-    }
-
-    // If only one result, return it
-    if (searchResults.length === 1) {
-      return searchResults[0]
-    }
-
-    // Normalize title for comparison (lowercase, remove special chars)
-    const normalizeTitle = (title: string): string => {
-      return title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/gi, '')
-        .trim()
-    }
-
-    const normalizedTarget = normalizeTitle(targetTitle)
-
-    // Try exact match first
-    let bestMatch = searchResults.find(
-      (anime) =>
-        normalizeTitle(anime.name) === normalizedTarget ||
-        normalizeTitle(anime.jtitle) === normalizedTarget
-    )
-
-    if (bestMatch) {
-      return bestMatch
-    }
-
-    // Try partial match (target contains anime name or vice versa)
-    bestMatch = searchResults.find(
-      (anime) =>
-        normalizedTarget.includes(normalizeTitle(anime.name)) ||
-        normalizeTitle(anime.name).includes(normalizedTarget) ||
-        normalizedTarget.includes(normalizeTitle(anime.jtitle)) ||
-        normalizeTitle(anime.jtitle).includes(normalizedTarget)
-    )
-
-    // If still no match, return the first result
-    return bestMatch || searchResults[0]
   }
 
   /**

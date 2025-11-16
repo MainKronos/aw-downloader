@@ -9,6 +9,7 @@ import axios from 'axios'
 import fs from 'fs/promises'
 import app from '@adonisjs/core/services/app'
 import path from 'path'
+import Config from '#models/config'
 
 export class MetadataSyncService {
   private sonarrService = getSonarrService()
@@ -76,6 +77,8 @@ export class MetadataSyncService {
     // Format genres as JSON string
     const genres = JSON.stringify(sonarrShow.genres)
 
+    const preferredLanguage = await Config.get<string>('preferred_language') || 'sub'
+
     const seriesData = {
       sonarrId: sonarrShow.id,
       title: sonarrShow.title,
@@ -87,6 +90,7 @@ export class MetadataSyncService {
         shouldDownloadPoster && posterPath ? DateTime.now() : series?.posterDownloadedAt || null,
       alternateTitles,
       genres,
+      preferredLanguage: series?.preferredLanguage || preferredLanguage,
       year: sonarrShow.year || null,
       network: sonarrShow.network || null,
       deleted: false, // Reset deleted flag if series is back in Sonarr
@@ -189,7 +193,8 @@ export class MetadataSyncService {
           season,
           series.title,
           series.alternateTitles,
-          sonarrSeason.seasonNumber
+          sonarrSeason.seasonNumber,
+          series.preferredLanguage
         )
       }
 
@@ -277,7 +282,8 @@ export class MetadataSyncService {
     season: Season,
     seriesTitle: string,
     alternateTitles: string | null,
-    seasonNumber: number
+    seasonNumber: number,
+    preferredLanguage: string = 'sub'
   ): Promise<void> {
     try {
       // Build list of titles to try with metadata about their origin
@@ -324,8 +330,27 @@ export class MetadataSyncService {
           continue // Try next title
         }
 
+        // Filter results based on preferred language
+        let filteredResults = searchResults
+        if (preferredLanguage === 'dub') {
+          // Only dubbed versions (dub = 1)
+          filteredResults = searchResults.filter(result => result.dub == 1)
+        } else if (preferredLanguage === 'sub') {
+          // Only subbed versions (dub = 0)
+          filteredResults = searchResults.filter(result => result.dub == 0)
+        } else if (preferredLanguage === 'dub_fallback_sub') {
+          // Prefer dubbed, but allow subbed if no dubbed version is found
+          const dubbedResults = searchResults.filter(result => result.dub == 1)
+          filteredResults = dubbedResults.length > 0 ? dubbedResults : searchResults.filter(result => result.dub == 0)
+        }
+
+        if (filteredResults.length === 0) {
+          logger.debug('UpdateMetadata', `No results matching language preference: ${preferredLanguage}`)
+          continue // Try next title
+        }
+
         // Find best match and all related parts
-        const matches = this.animeworldService.findBestMatchWithParts(searchResults, searchKeyword)
+        const matches = this.animeworldService.findBestMatchWithParts(filteredResults, searchKeyword)
 
         if (!matches || matches.length === 0) {
           continue // Try next title

@@ -56,7 +56,6 @@ router.group(() => {
     router.get('/', [ConfigsController, 'index'])
     router.get('/:key', [ConfigsController, 'show'])
     router.post('/', [ConfigsController, 'store'])
-    router.put('/batch', [ConfigsController, 'updateBatch'])
     router.delete('/:key', [ConfigsController, 'destroy'])
   }).prefix('/configs')
 

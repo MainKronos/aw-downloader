@@ -30,6 +30,7 @@ export default class extends BaseSchema {
         { key: 'sonarr_filter_anime_only', value: serialize(true) },
         { key: 'sonarr_tags_mode', value: serialize('blacklist') },
         { key: 'sonarr_tags', value: serialize([]) },
+        { key: 'preferred_language', value: serialize('sub') },
       ])
     })
   }

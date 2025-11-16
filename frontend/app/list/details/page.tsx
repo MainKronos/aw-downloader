@@ -4,16 +4,25 @@ import { useEffect, useState, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Loader2, Film, Edit2, Save, X, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { 
-  fetchSeriesById, 
-  updateSeasonDownloadUrls, 
+import {
+  fetchSeriesById,
+  updateSeasonDownloadUrls,
   syncSeriesMetadata,
+  updateSeries,
   getSeriesPosterUrl,
-  type SeriesDetail, 
-  type Season, 
+  type SeriesDetail,
+  type Season,
 } from "@/lib/api";
+import { Label } from "@/components/ui/label";
+
+const languageLabels: Record<string, string> = {
+  dub: "Doppiato",
+  sub: "Sottotitolato",
+  dub_fallback_sub: "Doppiato (fallback su sub)"
+};
 
 function SeriesDetailContent() {
   const router = useRouter();
@@ -79,8 +88,8 @@ function SeriesDetailContent() {
         .map((url) => url.trim())
         .filter((url) => url.length > 0);
 
-      await updateSeasonDownloadUrls(seasonId, { 
-        downloadUrls: JSON.stringify(urlsArray) 
+      await updateSeasonDownloadUrls(seasonId, {
+        downloadUrls: JSON.stringify(urlsArray)
       });
 
       if (seriesId) {
@@ -120,7 +129,7 @@ function SeriesDetailContent() {
 
   const handleSyncMetadata = () => {
     if (!seriesId) return;
-    
+
     startSyncingMetadata(async () => {
       try {
         await syncSeriesMetadata(parseInt(seriesId!));
@@ -130,6 +139,18 @@ function SeriesDetailContent() {
         toast.error(err instanceof Error ? err.message : "Errore sincronizzazione metadati");
       }
     });
+  };
+
+  const handlePreferredLanguageChange = async (value: string) => {
+    if (!seriesId) return;
+
+    try {
+      await updateSeries(parseInt(seriesId), { preferredLanguage: value });
+      toast.success(`Lingua preferita aggiornata: ${languageLabels[value] || value}`);
+      await fetchSeriesDetail(parseInt(seriesId));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Errore aggiornamento lingua");
+    }
   };
 
   if (loading) {
@@ -173,9 +194,9 @@ function SeriesDetailContent() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Torna alla lista
         </Button>
-        
-        <Button 
-          onClick={handleSyncMetadata} 
+
+        <Button
+          onClick={handleSyncMetadata}
           disabled={isSyncingMetadata}
           variant="default"
         >
@@ -210,7 +231,7 @@ function SeriesDetailContent() {
 
           <div className="flex-1">
             <h1 className="text-3xl font-bold mb-2">{series.title}</h1>
-            
+
             {alternateTitles.length > 0 && (
               <div className="mb-3">
                 <span className="text-sm text-muted-foreground">Titoli alternativi: </span>
@@ -219,7 +240,7 @@ function SeriesDetailContent() {
                 </span>
               </div>
             )}
-            
+
             <div className="flex flex-wrap gap-2 mb-4">
               {series.year && (
                 <span className="px-2 py-1 bg-muted text-foreground text-sm rounded">
@@ -258,6 +279,29 @@ function SeriesDetailContent() {
                   {totalMissingEpisodes}
                 </span>
               </div>
+            </div>
+
+            {/* Preferred Language Selector */}
+            <div className="flex items-start justify-between space-x-4 mt-4 pt-4 border-t">
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="preferred-language">Lingua preferita</Label>
+                <p className="text-sm text-muted-foreground">
+                  Seleziona la lingua preferita per gli episodi
+                </p>
+              </div>
+              <Select
+                value={series.preferredLanguage}
+                onValueChange={handlePreferredLanguageChange}
+              >
+                <SelectTrigger id="preferred-language" className="w-[200px]">
+                  <SelectValue placeholder="Seleziona lingua" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageLabels && Object.entries(languageLabels).map(([code, label]) => (
+                    <SelectItem key={code} value={code}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

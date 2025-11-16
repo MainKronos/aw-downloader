@@ -21,6 +21,7 @@ export interface Series {
   genres?: string;
   year?: number;
   network?: string;
+  preferredLanguage?: string;
 }
 
 export interface PaginationMeta {
@@ -120,6 +121,27 @@ export async function syncSeriesMetadata(id: number): Promise<{ message: string;
   return response.json();
 }
 
+export interface UpdateSeriesParams {
+  preferredLanguage?: string;
+}
+
+export async function updateSeries(
+  id: number,
+  params: UpdateSeriesParams
+): Promise<SeriesDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/series/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+  
+  if (!response.ok) throw new Error("Failed to update series");
+  
+  return response.json();
+}
+
 // ============================================
 // SEASONS API
 // ============================================
@@ -215,24 +237,6 @@ export async function updateConfig(key: string, value: any): Promise<{ key: stri
   });
   
   if (!response.ok) throw new Error("Failed to update config");
-  
-  return response.json();
-}
-
-export interface UpdateConfigsParams {
-  configs: Array<{ key: string; value: string }>;
-}
-
-export async function updateConfigs(params: UpdateConfigsParams): Promise<{ message: string }> {
-  const response = await fetch(`${API_BASE_URL}/api/configs`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(params),
-  });
-  
-  if (!response.ok) throw new Error("Failed to update configs");
   
   return response.json();
 }

@@ -52,19 +52,6 @@ export default class ConfigsController {
   }
 
   /**
-   * Update multiple configs at once
-   */
-  async updateBatch({ request, response }: HttpContext) {
-    const configs = request.body() as Record<string, string>
-    
-    for (const [key, value] of Object.entries(configs)) {
-      await Config.set(key, value.toString())
-    }
-    
-    return response.json({ message: 'Configs updated successfully', configs })
-  }
-
-  /**
    * Delete a config
    */
   async destroy({ params, response }: HttpContext) {
