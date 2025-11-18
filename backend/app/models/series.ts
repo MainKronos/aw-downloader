@@ -47,6 +47,9 @@ export default class Series extends BaseModel {
   declare preferredLanguage: string
 
   @column()
+  declare absolute: boolean
+
+  @column()
   declare deleted: boolean
 
   @hasMany(() => Season)

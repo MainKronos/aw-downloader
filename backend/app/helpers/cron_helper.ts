@@ -28,8 +28,8 @@ class CronHelper {
     let wantedInterval = 30
 
     try {
-      metadataInterval = parseInt(await Config.get('metadatainterval') || '120')
-      wantedInterval = parseInt(await Config.get('wantedinterval') || '30')
+      metadataInterval = parseInt(await Config.get('updatemetadata_interval') || '120')
+      wantedInterval = parseInt(await Config.get('fetchwanted_interval') || '30')
     } catch (error) {
       // Config table might not exist yet (during migrations)
       console.log('Using default task intervals (config not available)')

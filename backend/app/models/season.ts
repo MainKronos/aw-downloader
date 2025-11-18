@@ -2,7 +2,6 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import Series from './series.js'
-import Episode from './episode.js'
 
 export default class Season extends BaseModel {
   @column({ isPrimary: true })
@@ -60,9 +59,6 @@ export default class Season extends BaseModel {
 
   @belongsTo(() => Series)
   declare series: BelongsTo<typeof Series>
-
-  @hasMany(() => Episode)
-  declare episodes: HasMany<typeof Episode>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

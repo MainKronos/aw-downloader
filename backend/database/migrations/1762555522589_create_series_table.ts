@@ -19,6 +19,7 @@ export default class extends BaseSchema {
       table.string('poster_path').nullable()
       table.timestamp('poster_downloaded_at').nullable()
       table.string('preferred_language').defaultTo('sub').notNullable()
+      table.boolean('absolute').defaultTo(false).notNullable()
       table.boolean('deleted').defaultTo(false)
 
       table.timestamp('created_at')

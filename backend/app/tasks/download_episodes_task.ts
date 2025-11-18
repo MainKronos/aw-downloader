@@ -1,5 +1,4 @@
 import Config from '#models/config'
-import Episode from '#models/episode'
 import RootFolder from '#models/root_folder'
 import Series from '#models/series'
 import { getDownloadQueue } from '#services/download_queue'
@@ -105,7 +104,6 @@ export class DownloadEpisodesTask {
       
       // Check if cancelled after download
       if (this.isCancelled(queueItemId)) {
-        console.log(`Download ${queueItemId} was cancelled after downloading chunks`)
         this.removeCancelled(queueItemId)
         // Clean up temp directory
         await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
@@ -374,11 +372,9 @@ export class DownloadEpisodesTask {
         const sonarrService = getSonarrService()
         await sonarrService.initialize()
 
-        const { sonarrId } = await Episode.findOrFail(episodeId)
-
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        const episode = await sonarrService.getEpisode(sonarrId)
+        const episode = await sonarrService.getEpisode(episodeId)
         
         if (episode.episodeFileId) {
           await sonarrService.renameEpisodeFile(episode.episodeFileId)

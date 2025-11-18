@@ -1,8 +1,7 @@
-import { getSonarrService, type SonarrSeries } from '#services/sonarr_service'
+import { getSonarrService, SonarrStatistics, type SonarrSeries } from '#services/sonarr_service'
 import { AnimeworldService } from '#services/animeworld_service'
 import Series from '#models/series'
 import Season from '#models/season'
-import Episode from '#models/episode'
 import { logger } from '#services/logger_service'
 import { DateTime } from 'luxon'
 import axios from 'axios'
@@ -27,16 +26,7 @@ export class MetadataSyncService {
     logger.info('MetadataSync', `Syncing series: ${sonarrShow.title}`)
 
     const serie = await this.syncSeriesFromSonarr(sonarrShow)
-    const seasons = await this.syncSeasonsFromSonarr(
-      serie,
-      sonarrShow.id,
-      sonarrShow.seasons,
-      refreshUrls
-    )
-
-    for (const currentSeason of seasons) {
-      await this.syncEpisodes(serie.id, currentSeason, serie.sonarrId, currentSeason.seasonNumber)
-    }
+    await this.syncSeasonsFromSonarr(serie, sonarrShow, refreshUrls)
 
     logger.success('MetadataSync', `Successfully synced series: ${sonarrShow.title}`)
   }
@@ -77,7 +67,7 @@ export class MetadataSyncService {
     // Format genres as JSON string
     const genres = JSON.stringify(sonarrShow.genres)
 
-    const preferredLanguage = await Config.get<string>('preferred_language') || 'sub'
+    const preferredLanguage = (await Config.get<string>('preferred_language')) || 'sub'
 
     const seriesData = {
       sonarrId: sonarrShow.id,
@@ -112,20 +102,19 @@ export class MetadataSyncService {
 
   public async syncSeasonsFromSonarr(
     series: Series,
-    sonarrSeriesId: number,
-    sonarrSeasons: SonarrSeries['seasons'],
+    sonarrSeries: SonarrSeries,
     forceRefresh: boolean = false
   ): Promise<Season[]> {
     // Filter only monitored seasons and exclude season 0 (specials)
-    const candidateSeasons = sonarrSeasons.filter(
-      (season) => season.monitored && season.seasonNumber > 0
+    const candidateSeasons = sonarrSeries.seasons.filter(
+      (season) => season.statistics.episodeCount > 0 && season.seasonNumber > 0
     )
 
     // Filter seasons with valid episodes (async check)
     const monitoredSeasons = []
     for (const sonarrSeason of candidateSeasons) {
       const hasValidEpisodes = await this.sonarrService.seasonHasValidEpisodes(
-        sonarrSeriesId,
+        sonarrSeries.id,
         sonarrSeason.seasonNumber
       )
       if (hasValidEpisodes) {
@@ -133,14 +122,25 @@ export class MetadataSyncService {
       }
     }
 
+    const firstSeason = sonarrSeries.seasons.find((s) => s.seasonNumber == 1)
+    if (!firstSeason) {
+      logger.warning(
+        'UpdateMetadata',
+        `No season 1 found for series ${series.title}, skipping season sync.`
+      )
+      throw new Error(`No season 1 found for ${series.title}`)
+    }
+
+    const seasonsToInsert = series.absolute ? [firstSeason] : monitoredSeasons
+
     // Get season numbers from Sonarr (monitored seasons with valid episodes)
-    const sonarrSeasonNumbers = monitoredSeasons.map((season) => season.seasonNumber)
+    const seasonNumbers = seasonsToInsert.map((season) => season.seasonNumber)
 
     // Mark seasons as deleted if they're no longer monitored or no longer in Sonarr
-    if (sonarrSeasonNumbers.length > 0) {
+    if (seasonNumbers.length > 0) {
       await Season.query()
         .where('series_id', series.id)
-        .whereNotIn('season_number', sonarrSeasonNumbers)
+        .whereNotIn('season_number', seasonNumbers)
         .update({ deleted: true })
     } else {
       // If no monitored seasons, mark all as deleted
@@ -149,7 +149,19 @@ export class MetadataSyncService {
 
     const syncedSeasons: Season[] = []
 
-    for (const sonarrSeason of monitoredSeasons) {
+    const getEpisodeStats = (stats: SonarrStatistics) => {
+      const airedEpisodes = stats.episodeCount || 0
+      const downloadedEpisodes = stats.episodeFileCount || 0
+      const totalEpisodes = stats.episodeCount || 0
+      const missingEpisodes = Math.max(0, airedEpisodes - downloadedEpisodes)
+      return {
+        totalEpisodes,
+        missingEpisodes,
+        airedEpisodes,
+      }
+    }
+
+    for (const sonarrSeason of seasonsToInsert) {
       // Check if season already exists
       let season = await Season.query()
         .where('series_id', series.id)
@@ -160,10 +172,10 @@ export class MetadataSyncService {
       // episodeCount = episodes already aired
       // episodeFileCount = episodes downloaded
       // We only consider aired episodes, not future ones
-      const airedEpisodes = sonarrSeason.statistics?.episodeCount || 0
-      const downloadedEpisodes = sonarrSeason.statistics?.episodeFileCount || 0
-      const totalEpisodes = sonarrSeason.statistics?.totalEpisodeCount || 0
-      const missingEpisodes = Math.max(0, airedEpisodes - downloadedEpisodes)
+
+      const { totalEpisodes, missingEpisodes, airedEpisodes } = series.absolute
+        ? getEpisodeStats(sonarrSeries.statistics)
+        : getEpisodeStats(sonarrSeason.statistics)
 
       const seasonData = {
         seriesId: series.id,
@@ -189,13 +201,7 @@ export class MetadataSyncService {
 
       // Try to find AnimeWorld URL if not already set
       if (!season.downloadUrls || season.downloadUrls.length === 0 || forceRefresh) {
-        await this.searchAndSetAnimeworldUrl(
-          season,
-          series.title,
-          series.alternateTitles,
-          sonarrSeason.seasonNumber,
-          series.preferredLanguage
-        )
+        await this.searchAndSetAnimeworldUrl(series, season, sonarrSeason.seasonNumber)
       }
 
       syncedSeasons.push(season)
@@ -205,96 +211,29 @@ export class MetadataSyncService {
     return syncedSeasons
   }
 
-  /**
-   * Sync episodes for a season
-   */
-  private async syncEpisodes(
-    seriesId: number,
+  private async searchAndSetAnimeworldUrl(
+    series: Series,
     season: Season,
-    sonarrSeriesId: number,
     seasonNumber: number
   ): Promise<void> {
     try {
-      // Fetch episodes from Sonarr for this series
-      const sonarrEpisodesAll = await this.sonarrService.getSeriesEpisodes(sonarrSeriesId)
-
-      const sonarrEpisodes = sonarrEpisodesAll.filter((ep) => ep.seasonNumber === seasonNumber)
-
-      const now = DateTime.now()
-
-      for (const sonarrEpisode of sonarrEpisodes) {
-        // Check if episode already exists
-        let episode = await Episode.query()
-          .where('series_id', seriesId)
-          .where('season_id', season.id)
-          .where('sonarr_id', sonarrEpisode.id)
-          .first()
-
-        // Determine aired status
-        let airedStatus: 'aired' | 'not_aired' = 'not_aired'
-        if (sonarrEpisode.airDateUtc) {
-          const airDate = DateTime.fromISO(sonarrEpisode.airDateUtc)
-          airedStatus = airDate <= now ? 'aired' : 'not_aired'
-        }
-
-        // Determine disk status
-        const diskStatus: 'downloaded' | 'missing' = sonarrEpisode.hasFile
-          ? 'downloaded'
-          : 'missing'
-
-        const episodeData = {
-          seriesId,
-          seasonId: season.id,
-          seasonNumber,
-          sonarrId: sonarrEpisode.id,
-          episodeNumber: sonarrEpisode.episodeNumber,
-          title: sonarrEpisode.title,
-          airDateUtc: sonarrEpisode.airDateUtc ? DateTime.fromISO(sonarrEpisode.airDateUtc) : null,
-          airedStatus,
-          diskStatus,
-          monitored: sonarrEpisode.monitored,
-        }
-
-        if (episode) {
-          // Update existing episode
-          episode.merge(episodeData)
-          await episode.save()
-        } else {
-          // Create new episode
-          await Episode.create(episodeData)
-        }
+      if (series.absolute && seasonNumber !== 1) {
+        logger.debug(
+          'UpdateMetadata',
+          `Series is absolute, skipping AnimeWorld search for season ${seasonNumber}`
+        )
+        return
       }
 
-      logger.info(
-        'UpdateMetadata',
-        `Synced ${sonarrEpisodes.length} episodes for season ${seasonNumber} of series ${seriesId}`
-      )
-    } catch (error) {
-      logger.error(
-        'UpdateMetadata',
-        `Error syncing episodes for series ${seriesId}, season ${seasonNumber}`,
-        error
-      )
-    }
-  }
-
-  private async searchAndSetAnimeworldUrl(
-    season: Season,
-    seriesTitle: string,
-    alternateTitles: string | null,
-    seasonNumber: number,
-    preferredLanguage: string = 'sub'
-  ): Promise<void> {
-    try {
       // Build list of titles to try with metadata about their origin
       const titlesToTry: Array<{ title: string; isSeasonSpecific: boolean }> = [
-        { title: seriesTitle, isSeasonSpecific: false },
+        { title: series.title, isSeasonSpecific: false },
       ]
 
       // Add alternate titles if available, filtering by sceneSeasonNumber
-      if (alternateTitles) {
+      if (series.alternateTitles) {
         try {
-          const alternates = JSON.parse(alternateTitles) as Array<{
+          const alternates = JSON.parse(series.alternateTitles) as Array<{
             title: string
             sceneSeasonNumber: number
           }>
@@ -332,25 +271,34 @@ export class MetadataSyncService {
 
         // Filter results based on preferred language
         let filteredResults = searchResults
-        if (preferredLanguage === 'dub') {
+        if (series.preferredLanguage === 'dub') {
           // Only dubbed versions (dub = 1)
-          filteredResults = searchResults.filter(result => result.dub == 1)
-        } else if (preferredLanguage === 'sub') {
+          filteredResults = searchResults.filter((result) => result.dub == 1)
+        } else if (series.preferredLanguage === 'sub') {
           // Only subbed versions (dub = 0)
-          filteredResults = searchResults.filter(result => result.dub == 0)
-        } else if (preferredLanguage === 'dub_fallback_sub') {
+          filteredResults = searchResults.filter((result) => result.dub == 0)
+        } else if (series.preferredLanguage === 'dub_fallback_sub') {
           // Prefer dubbed, but allow subbed if no dubbed version is found
-          const dubbedResults = searchResults.filter(result => result.dub == 1)
-          filteredResults = dubbedResults.length > 0 ? dubbedResults : searchResults.filter(result => result.dub == 0)
+          const dubbedResults = searchResults.filter((result) => result.dub == 1)
+          filteredResults =
+            dubbedResults.length > 0
+              ? dubbedResults
+              : searchResults.filter((result) => result.dub == 0)
         }
 
         if (filteredResults.length === 0) {
-          logger.debug('UpdateMetadata', `No results matching language preference: ${preferredLanguage}`)
+          logger.debug(
+            'UpdateMetadata',
+            `No results matching language preference: ${series.preferredLanguage}`
+          )
           continue // Try next title
         }
 
         // Find best match and all related parts
-        const matches = this.animeworldService.findBestMatchWithParts(filteredResults, searchKeyword)
+        const matches = this.animeworldService.findBestMatchWithParts(
+          filteredResults,
+          searchKeyword
+        )
 
         if (!matches || matches.length === 0) {
           continue // Try next title

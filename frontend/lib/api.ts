@@ -22,6 +22,7 @@ export interface Series {
   year?: number;
   network?: string;
   preferredLanguage?: string;
+  absolute?: boolean;
 }
 
 export interface PaginationMeta {
@@ -92,6 +93,8 @@ export interface SeriesDetail extends Omit<Series, 'totalMissingEpisodes' | 'del
   network?: string;
   genres?: string;
   seasons: Season[];
+  countMissingEpisodes: number;
+  countTotalEpisodes: number;
 }
 
 export async function fetchSeriesById(id: number): Promise<SeriesDetail> {
@@ -123,6 +126,7 @@ export async function syncSeriesMetadata(id: number): Promise<{ message: string;
 
 export interface UpdateSeriesParams {
   preferredLanguage?: string;
+  absolute?: boolean;
 }
 
 export async function updateSeries(

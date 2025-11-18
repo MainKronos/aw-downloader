@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useState, useTransition, Suspense } from "react";
+import { useEffect, useState, useTransition, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, Film, Edit2, Save, X, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Film, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchSeriesById,
-  updateSeasonDownloadUrls,
   syncSeriesMetadata,
   updateSeries,
   getSeriesPosterUrl,
   type SeriesDetail,
-  type Season,
 } from "@/lib/api";
 import { Label } from "@/components/ui/label";
+import { SeasonCard } from "@/components/season-card";
 
 const languageLabels: Record<string, string> = {
   dub: "Doppiato",
@@ -32,9 +32,6 @@ function SeriesDetailContent() {
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingSeasonId, setEditingSeasonId] = useState<number | null>(null);
-  const [editUrls, setEditUrls] = useState<string>("");
-  const [saving, setSaving] = useState(false);
   const [isSyncingMetadata, startSyncingMetadata] = useTransition();
 
   useEffect(() => {
@@ -64,44 +61,6 @@ function SeriesDetailContent() {
       setError(err instanceof Error ? err.message : "Errore sconosciuto");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEditUrls = (season: Season) => {
-    setEditingSeasonId(season.id);
-    const urls = season.downloadUrls && season.downloadUrls.length > 0
-      ? season.downloadUrls.join("\n")
-      : "";
-    setEditUrls(urls);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingSeasonId(null);
-    setEditUrls("");
-  };
-
-  const handleSaveUrls = async (seasonId: number) => {
-    setSaving(true);
-    try {
-      const urlsArray = editUrls
-        .split("\n")
-        .map((url) => url.trim())
-        .filter((url) => url.length > 0);
-
-      await updateSeasonDownloadUrls(seasonId, {
-        downloadUrls: JSON.stringify(urlsArray)
-      });
-
-      if (seriesId) {
-        await fetchSeriesDetail(parseInt(seriesId));
-      }
-      setEditingSeasonId(null);
-      setEditUrls("");
-      toast.success("Identificatori aggiornati");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Errore salvataggio");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -153,6 +112,18 @@ function SeriesDetailContent() {
     }
   };
 
+  const handleAbsoluteToggle = async (checked: boolean) => {
+    if (!seriesId) return;
+
+    try {
+      await updateSeries(parseInt(seriesId), { absolute: checked });
+      toast.success(checked ? "Numerazione assoluta attivata" : "Numerazione assoluta disattivata");
+      await fetchSeriesDetail(parseInt(seriesId));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Errore aggiornamento numerazione");
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -179,12 +150,15 @@ function SeriesDetailContent() {
     );
   }
 
-  const totalMissingEpisodes = series.seasons.reduce(
-    (sum, s) => sum + (s.missingEpisodes || 0),
-    0
-  );
+  const totalMissingEpisodes = series.countMissingEpisodes;
+  const totalEpisodes = series.countTotalEpisodes;
+
   const genres = parseGenres(series.genres || null);
   const alternateTitles = parseAlternateTitles(series.alternateTitles || null);
+
+  const seasonsToDisplay = series.absolute
+    ? series.seasons.filter(s => s.seasonNumber === 1)
+    : series.seasons;
 
   return (
     <div className="p-6">
@@ -274,8 +248,12 @@ function SeriesDetailContent() {
                 <span className="ml-2 font-medium">{series.seasons.length}</span>
               </div>
               <div>
+                <span className="text-muted-foreground">Totale episodi monitorati:</span>
+                <span className="ml-2 font-medium">{totalEpisodes}</span>
+              </div>
+              <div>
                 <span className="text-muted-foreground">Episodi mancanti:</span>
-                <span className="ml-2 font-medium text-red-600 dark:text-red-400">
+                <span className={`ml-2 font-medium text-${totalMissingEpisodes > 0 ? 'red' : 'green'}-600 dark:text-${totalMissingEpisodes > 0 ? 'red' : 'green'}-400`}>
                   {totalMissingEpisodes}
                 </span>
               </div>
@@ -303,6 +281,23 @@ function SeriesDetailContent() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Absolute Numbering Switch */}
+            <div className="flex items-start justify-between space-x-4 mt-4 pt-4 border-t">
+              <div className="space-y-1 flex-1">
+                <Label htmlFor="absolute-numbering" className="cursor-pointer">
+                  Numerazione assoluta
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Utilizza la numerazione assoluta degli episodi (tutte le stagioni in un'unica sequenza)
+                </p>
+              </div>
+              <Switch
+                id="absolute-numbering"
+                checked={series.absolute || false}
+                onCheckedChange={handleAbsoluteToggle}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -315,124 +310,19 @@ function SeriesDetailContent() {
           <div className="bg-muted border rounded-lg p-8 text-center">
             <p className="text-muted-foreground">Nessuna stagione disponibile</p>
           </div>
-        ) : (
-          series.seasons.map((season) => {
-            const isEditing = editingSeasonId === season.id;
-            const downloadUrls = season.downloadUrls && season.downloadUrls.length > 0
-              ? season.downloadUrls
-              : [];
-
-            return (
-              <div key={season.id} className="border rounded-lg p-4 bg-card">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-lg">
-                        Stagione {season.seasonNumber}
-                      </h3>
-                      {!!season.deleted && (
-                        <Badge variant="secondary">
-                          Non presente su Sonarr
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex gap-4 text-sm text-muted-foreground mt-1">
-                      <span>{season.totalEpisodes} episodi</span>
-                      {season.missingEpisodes > 0 && (
-                        <span className="text-red-600 dark:text-red-400 font-medium">
-                          {season.missingEpisodes} mancanti
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {!isEditing && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditUrls(season)}
-                    >
-                      <Edit2 className="h-3 w-3 mr-2" />
-                      Modifica Identificatori
-                    </Button>
-                  )}
-                </div>
-
-                {isEditing ? (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Identificatori Anime (uno per riga)
-                      </label>
-                      <textarea
-                        value={editUrls}
-                        onChange={(e) => setEditUrls(e.target.value)}
-                        className="w-full h-32 px-3 py-2 border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring font-mono text-sm"
-                        placeholder="one-piece.12345&#10;one-piece-part-2.12346"
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Inserisci un identificatore per riga (es: one-piece.12345).
-                        Verranno combinati con il dominio base per creare gli URL completi.
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => handleSaveUrls(season.id)}
-                        disabled={saving}
-                        size="sm"
-                      >
-                        {saving ? (
-                          <>
-                            <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                            Salvataggio...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-3 w-3 mr-2" />
-                            Salva
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={handleCancelEdit}
-                        disabled={saving}
-                        size="sm"
-                      >
-                        <X className="h-3 w-3 mr-2" />
-                        Annulla
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    {downloadUrls.length > 0 ? (
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">
-                          Identificatori Anime ({downloadUrls.length}):
-                        </p>
-                        <div className="bg-muted rounded p-3 max-h-32 overflow-y-auto">
-                          {downloadUrls.map((url: string, index: number) => (
-                            <div
-                              key={index}
-                              className="text-xs text-muted-foreground font-mono truncate"
-                            >
-                              {url}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground italic">
-                        Nessun identificatore configurato
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })
+        ) : (<>
+          {seasonsToDisplay.map((season) => (
+            <SeasonCard
+              key={season.id}
+              season={season}
+              seriesTitle={series.title}
+              isAbsolute={series.absolute || false}
+              totalEpisodes={totalEpisodes}
+              totalMissingEpisodes={totalMissingEpisodes}
+              onUpdate={() => seriesId && fetchSeriesDetail(parseInt(seriesId))}
+            />
+          ))}
+        </>
         )}
       </div>
     </div>

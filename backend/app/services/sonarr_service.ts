@@ -4,6 +4,14 @@ import { logger } from '#services/logger_service'
 import { DateTime } from 'luxon'
 import cache from '@adonisjs/cache/services/main'
 
+export interface SonarrStatistics {
+  episodeCount: number
+  episodeFileCount: number
+  totalEpisodeCount: number
+  percentOfEpisodes?: number
+  previousAiring?: string
+  sizeOnDisk?: number
+}
 export interface SonarrSeries {
   id: number
   title: string
@@ -16,20 +24,14 @@ export interface SonarrSeries {
   seasons: Array<{
     seasonNumber: number
     monitored: boolean
-    statistics?: {
-      episodeCount: number
-      episodeFileCount: number
-      totalEpisodeCount: number
-      percentOfEpisodes?: number
-      previousAiring?: string
-      sizeOnDisk?: number
-    }
+    statistics: SonarrStatistics
   }>
   year: number
   network: string
   genres: string[]
   tags: number[]
   images: Array<{ coverType: string; url: string; remoteUrl: string }>
+  statistics: SonarrStatistics
 }
 
 export interface SonarrEpisode {
@@ -52,8 +54,9 @@ export interface SonarrWantedRecord {
   episodeNumber: number
   title: string
   airDateUtc: string
-  monitored: boolean,
+  monitored: boolean
   series: SonarrSeries
+  absoluteEpisodeNumber?: number
 }
 
 export interface SonarrWantedResponse {
@@ -86,7 +89,6 @@ export class SonarrService {
   private static healthy: boolean = false
   private static lastCheck: Date | null = null
   private static seriesCache: Map<number, SeriesCache> = new Map()
-  private static CACHE_TTL = 5 * 60 * 1000 // 5 minutes in milliseconds
 
   /**
    * Initialize the service with Sonarr configuration
@@ -166,7 +168,10 @@ export class SonarrService {
         }
       )
 
-      logger.debug('SonarrService', `Fetched ${response.data.length} episodes for series ${seriesId}`)
+      logger.debug(
+        'SonarrService',
+        `Fetched ${response.data.length} episodes for series ${seriesId}`
+      )
 
       // Cache the result for 5 minutes
       await cache.set({ key: cacheKey, value: response.data, ttl: '5m' })
@@ -187,15 +192,6 @@ export class SonarrService {
     this.ensureInitialized()
     this.ensureHealthy()
 
-    // Check cache
-    const cached = SonarrService.seriesCache.get(seriesId)
-    const now = Date.now()
-
-    if (cached && (now - cached.timestamp) < SonarrService.CACHE_TTL) {
-      logger.debug('SonarrService', `Using cached data for series ${seriesId}`)
-      return cached.series
-    }
-
     try {
       logger.debug('SonarrService', `Fetching series ${seriesId} from Sonarr`)
       const response = await axios.get<SonarrSeries>(
@@ -206,12 +202,6 @@ export class SonarrService {
           },
         }
       )
-
-      // Update cache
-      SonarrService.seriesCache.set(seriesId, {
-        series: response.data,
-        timestamp: now,
-      })
 
       logger.debug('SonarrService', `Cached series ${seriesId} data`)
       return response.data
@@ -285,7 +275,7 @@ export class SonarrService {
             sortKey,
             sortDirection,
             includeSeries: true,
-            monitored: true
+            monitored: true,
           },
         }
       )
@@ -320,12 +310,12 @@ export class SonarrService {
       // Check if at least one episode has a valid air date (past or up to 2 weeks in the future)
       const now = DateTime.now()
       const twoWeeksFromNow = now.plus({ weeks: 2 })
-      
+
       const hasValidAirDate = seasonEpisodes.some((ep) => {
         if (!ep.airDateUtc || ep.airDateUtc === null) {
           return false
         }
-        
+
         const airDate = DateTime.fromISO(ep.airDateUtc)
         return airDate.isValid && airDate <= twoWeeksFromNow
       })
@@ -335,7 +325,11 @@ export class SonarrService {
 
       return hasValidAirDate
     } catch (error) {
-      logger.error('SonarrService', `Error checking episodes for series ${seriesId}, season ${seasonNumber}`, error)
+      logger.error(
+        'SonarrService',
+        `Error checking episodes for series ${seriesId}, season ${seasonNumber}`,
+        error
+      )
       return false
     }
   }
@@ -345,13 +339,16 @@ export class SonarrService {
    */
   async getMonitoredAnimeSeries(): Promise<SonarrSeries[]> {
     const allSeries = await this.getAllSeries()
-    
+
     // Filter only anime series that are monitored
     const animeSeries = allSeries.filter(
       (show) => show.seriesType.toLowerCase() === 'anime' && show.monitored
     )
 
-    logger.debug('SonarrService', `Found ${animeSeries.length} monitored anime series out of ${allSeries.length} total`)
+    logger.debug(
+      'SonarrService',
+      `Found ${animeSeries.length} monitored anime series out of ${allSeries.length} total`
+    )
     return animeSeries
   }
 
@@ -363,14 +360,11 @@ export class SonarrService {
     this.ensureHealthy()
 
     try {
-      const response = await axios.get<SonarrRootFolder[]>(
-        `${this.sonarrUrl}/api/v3/rootfolder`,
-        {
-          headers: {
-            'X-Api-Key': this.sonarrToken,
-          },
-        }
-      )
+      const response = await axios.get<SonarrRootFolder[]>(`${this.sonarrUrl}/api/v3/rootfolder`, {
+        headers: {
+          'X-Api-Key': this.sonarrToken,
+        },
+      })
 
       logger.debug('SonarrService', `Fetched ${response.data.length} root folders from Sonarr`)
       return response.data
@@ -388,14 +382,11 @@ export class SonarrService {
     this.ensureHealthy()
 
     try {
-      const response = await axios.get<SonarrTag[]>(
-        `${this.sonarrUrl}/api/v3/tag`,
-        {
-          headers: {
-            'X-Api-Key': this.sonarrToken,
-          },
-        }
-      )
+      const response = await axios.get<SonarrTag[]>(`${this.sonarrUrl}/api/v3/tag`, {
+        headers: {
+          'X-Api-Key': this.sonarrToken,
+        },
+      })
 
       return response.data
     } catch (error) {
@@ -403,7 +394,6 @@ export class SonarrService {
       throw error
     }
   }
-
 
   /**
    * Test Sonarr connection and update health status
@@ -483,7 +473,6 @@ export class SonarrService {
     this.ensureHealthy()
 
     try {
-      
       await axios.post(
         `${this.sonarrUrl}/api/v3/command`,
         {
@@ -496,10 +485,15 @@ export class SonarrService {
           },
         }
       )
-
     } catch (error) {
-      logger.error('SonarrService', `Failed to trigger rescan for series ${seriesId}`, error.message)
-      throw new Error(`Failed to rescan series: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      logger.error(
+        'SonarrService',
+        `Failed to trigger rescan for series ${seriesId}`,
+        error.message
+      )
+      throw new Error(
+        `Failed to rescan series: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 
@@ -514,7 +508,7 @@ export class SonarrService {
 
     try {
       logger.debug('SonarrService', `Triggering rename for file ${fileId}`)
-      
+
       await axios.post(
         `${this.sonarrUrl}/api/v3/command`,
         {
@@ -531,7 +525,9 @@ export class SonarrService {
       logger.success('SonarrService', `Successfully triggered rename for file ${fileId}`)
     } catch (error) {
       logger.error('SonarrService', `Failed to trigger rename for file ${fileId}`, error)
-      throw new Error(`Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(
+        `Failed to rename file: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 }

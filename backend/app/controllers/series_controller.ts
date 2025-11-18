@@ -27,20 +27,23 @@ export default class SeriesController {
       }
 
       const series = await query.paginate(page, limit)
-      
+
       // Add statistics to each series
       const seriesWithStats = await Promise.all(
         series.map(async (s) => {
           // Get total missing episodes and count of non-deleted seasons
-          const seasons = await Season.query()
-            .where('series_id', s.id)
-            .where('deleted', false)
-          
-          const totalMissingEpisodes = seasons.reduce((sum, season) => sum + (season.missingEpisodes || 0), 0)
+          const seasons = await Season.query().where('series_id', s.id).where('deleted', false)
+
+          const totalMissingEpisodes = seasons.reduce(
+            (sum, season) => sum + (season.missingEpisodes || 0),
+            0
+          )
           const totalSeasons = seasons.length
 
           // Check if any non-deleted season is missing download URL
-          const seasonsWithoutUrl = seasons.filter((season) => {
+          const seasonsWithoutUrl = seasons.filter(season => {
+            return s.absolute ? season.seasonNumber === 1 : true
+          }).filter((season) => {
             return !season.downloadUrls || season.downloadUrls.length === 0
           })
 
@@ -70,11 +73,32 @@ export default class SeriesController {
    */
   async show({ params, response }: HttpContext) {
     try {
-      const series = await Series.query()
-        .where('id', params.id)
-        .preload('seasons')
-        .firstOrFail()
-      return response.ok(series)
+      const series = await Series.query().where('id', params.id).firstOrFail()
+
+      await series.load('seasons', (builder) => {
+        if (series.absolute) {
+          builder.where('season_number', 1).limit(1)
+        } else {
+          builder.where('deleted', false)
+        }
+        builder.orderBy('seasonNumber', 'asc')
+      })
+
+      await series
+        .loadAggregate('seasons', (query) => {
+          query.where('deleted', false)
+          query.sum('missing_episodes').as('count_missing_episodes')
+        })
+        .loadAggregate('seasons', (query) => {
+          query.where('deleted', false)
+          query.sum('total_episodes').as('count_total_episodes')
+        })
+
+      return response.ok({
+        ...series.toJSON(),
+        countMissingEpisodes: series.$extras.count_missing_episodes as number,
+        countTotalEpisodes: series.$extras.count_total_episodes,
+      })
     } catch (error) {
       return response.notFound({ message: 'Series not found' })
     }
@@ -99,7 +123,15 @@ export default class SeriesController {
   async update({ params, request, response }: HttpContext) {
     try {
       const series = await Series.findOrFail(params.id)
-      const data = request.only(['title', 'description', 'status', 'totalSeasons', 'posterUrl', 'preferredLanguage'])
+      const data = request.only([
+        'title',
+        'description',
+        'status',
+        'totalSeasons',
+        'posterUrl',
+        'preferredLanguage',
+        'absolute',
+      ])
       series.merge(data)
       await series.save()
       return response.ok(series)
@@ -156,22 +188,22 @@ export default class SeriesController {
       const seriesId = params.id
       const { sonarrId } = await Series.findOrFail(seriesId)
 
-      if ( !sonarrId ) {
+      if (!sonarrId) {
         return response.badRequest({ message: 'Series does not have a Sonarr ID' })
       }
 
       const metadataSyncService = new MetadataSyncService()
-      
+
       await metadataSyncService.syncSeries(sonarrId, true)
-      
-      return response.ok({ 
+
+      return response.ok({
         message: 'Metadata synced successfully',
-        seriesId 
+        seriesId,
       })
     } catch (error) {
-      return response.badRequest({ 
-        message: 'Error syncing metadata', 
-        error: error.message 
+      return response.badRequest({
+        message: 'Error syncing metadata',
+        error: error.message,
       })
     }
   }
