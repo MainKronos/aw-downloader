@@ -7,8 +7,8 @@ name: Docker
 
 on:
   push:
-    tags: 
-      - 'v*.*.*'
+    branches: 
+      - "dev"
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -67,11 +67,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # Tag versione semver solo per i tag (es: 1.0.0, 1.0, 1)
-            type=semver,pattern={{version}}
-            type=semver,pattern={{version}},value=latest
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            # Tag dev solo per branch dev
+            type=ref,event=branch,pattern=dev
 
 
       # Build and push Docker image with Buildx (don't push on PR)
@@ -87,7 +84,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            APP_VERSION=${{ steps.meta.outputs.version }}
+            APP_VERSION=dev
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
