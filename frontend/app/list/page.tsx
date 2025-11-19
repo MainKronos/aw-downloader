@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Loader2, ChevronLeft, ChevronRight, Film, Trash2 } from "lucide-react";
+import { Search, Loader2, ChevronLeft, ChevronRight, Film, Trash2, Eye } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -118,8 +118,8 @@ export default function ListaPage() {
 
   if (loading && series.length === 0) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-4">Lista Serie</h1>
+      <div className="w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Lista Serie</h1>
         <div className="flex items-center justify-center p-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -128,18 +128,18 @@ export default function ListaPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Lista Serie</h1>
-        <p className="text-muted-foreground">
+    <div className="w-full">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Lista Serie</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Gestisci e monitora le tue serie anime
         </p>
       </div>
 
       {/* Search Bar */}
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="flex gap-2">
-          <div className="relative flex-1 max-w-md">
+      <form onSubmit={handleSearch} className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="text"
@@ -149,26 +149,29 @@ export default function ListaPage() {
               className="pl-10"
             />
           </div>
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Cerca"
-            )}
-          </Button>
-          {search && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setSearch("");
-                setSearchInput("");
-                setPage(1);
-              }}
-            >
-              Reset
+          <div className="flex gap-2">
+            <Button type="submit" disabled={loading} className="flex-1 sm:flex-initial">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Cerca"
+              )}
             </Button>
-          )}
+            {search && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setSearchInput("");
+                  setPage(1);
+                }}
+                className="flex-1 sm:flex-initial"
+              >
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
       </form>
 
@@ -179,15 +182,15 @@ export default function ListaPage() {
       )}
 
       {/* Series Table */}
-      <div className="border rounded-lg bg-card">
+      <div className="border rounded-lg bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50%]">Titolo</TableHead>
-              <TableHead>Stato</TableHead>
-              <TableHead className="text-center">Stagioni</TableHead>
-              <TableHead className="text-center">Episodi Mancanti</TableHead>
-              <TableHead className="text-right">Azioni</TableHead>
+              <TableHead className="min-w-[200px] sm:w-[50%]">Titolo</TableHead>
+              <TableHead className="hidden sm:table-cell">Stato</TableHead>
+              <TableHead className="text-center min-w-[80px]">Stagioni</TableHead>
+              <TableHead className="text-center min-w-[100px]">Ep. Mancanti</TableHead>
+              <TableHead className="text-right min-w-[80px]">Azioni</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -213,21 +216,26 @@ export default function ListaPage() {
                   onClick={() => handleSeriesClick(s.id)}
                 >
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {s.title}
-                      {!!s.deleted && (
-                        <Badge variant="destructive">
-                          Non su Sonarr
-                        </Badge>
-                      )}
-                      {s.hasMissingDownloadUrls && (
-                        <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
-                          Link mancanti
-                        </Badge>
-                      )}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm sm:text-base">{s.title}</span>
+                        {!!s.deleted && (
+                          <Badge variant="destructive" className="text-xs">
+                            Non su Sonarr
+                          </Badge>
+                        )}
+                        {s.hasMissingDownloadUrls && (
+                          <Badge variant="outline" className="text-xs bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                            Link mancanti
+                          </Badge>
+                        )}
+                      </div>
+                      <span className="sm:hidden text-xs text-muted-foreground">
+                        {s.status}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <span
                       className={`inline-block px-2 py-1 text-xs rounded-full ${
                         s.status === "continuing"
@@ -251,7 +259,7 @@ export default function ListaPage() {
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-1 sm:gap-2 justify-end">
                       <Button
                         variant="outline"
                         size="sm"
@@ -259,12 +267,25 @@ export default function ListaPage() {
                           e.stopPropagation();
                           handleSeriesClick(s.id);
                         }}
+                        className="hidden sm:inline-flex"
                       >
                         Dettagli
                       </Button>
                       <Button
+                        variant="outline"
+                        size="icon"
+                        className="sm:hidden h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSeriesClick(s.id);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
                         variant="destructive"
-                        size="sm"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={(e) => handleDeleteClick(s.id, e)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -280,19 +301,19 @@ export default function ListaPage() {
 
       {/* Pagination */}
       {meta && meta.lastPage > 1 && (
-        <div className="mt-6 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
+        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
             Pagina {meta.currentPage} di {meta.lastPage} ({meta.total} totali)
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 order-1 sm:order-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setPage(page - 1)}
               disabled={page === 1 || loading}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Precedente
+              <ChevronLeft className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Precedente</span>
             </Button>
             <Button
               variant="outline"
@@ -300,8 +321,8 @@ export default function ListaPage() {
               onClick={() => setPage(page + 1)}
               disabled={!meta.hasMorePages || loading}
             >
-              Successiva
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <span className="hidden sm:inline">Successiva</span>
+              <ChevronRight className="h-4 w-4 sm:ml-1" />
             </Button>
           </div>
         </div>

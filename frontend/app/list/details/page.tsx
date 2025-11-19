@@ -161,10 +161,10 @@ function SeriesDetailContent() {
     : series.seasons;
 
   return (
-    <div className="p-6">
+    <div className="w-full">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
-        <Button variant="outline" onClick={() => router.push("/list")}>
+      <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2">
+        <Button variant="outline" onClick={() => router.push("/list")} className="w-full sm:w-auto">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Torna alla lista
         </Button>
@@ -173,6 +173,7 @@ function SeriesDetailContent() {
           onClick={handleSyncMetadata}
           disabled={isSyncingMetadata}
           variant="default"
+          className="w-full sm:w-auto"
         >
           {isSyncingMetadata ? (
             <>
@@ -189,56 +190,56 @@ function SeriesDetailContent() {
       </div>
 
       {/* Series Info */}
-      <div className="bg-card border rounded-lg p-6 mb-6">
-        <div className="flex gap-6">
+      <div className="bg-card border rounded-lg p-3 sm:p-6 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
           {series.posterPath ? (
             <img
               src={getSeriesPosterUrl(series.id)}
               alt={series.title}
-              className="w-48 h-72 object-cover rounded-lg"
+              className="w-full sm:w-48 h-auto sm:h-72 max-h-[400px] sm:max-h-none object-cover rounded-lg"
             />
           ) : (
-            <div className="w-48 h-72 bg-muted rounded-lg flex items-center justify-center">
-              <Film className="h-16 w-16 text-muted-foreground" />
+            <div className="w-full sm:w-48 h-48 sm:h-72 bg-muted rounded-lg flex items-center justify-center">
+              <Film className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground" />
             </div>
           )}
 
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-2">{series.title}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl sm:text-3xl font-bold mb-2 break-words">{series.title}</h1>
 
             {alternateTitles.length > 0 && (
               <div className="mb-3">
-                <span className="text-sm text-muted-foreground">Titoli alternativi: </span>
-                <span className="text-sm text-foreground">
+                <span className="text-xs sm:text-sm text-muted-foreground">Titoli alternativi: </span>
+                <span className="text-xs sm:text-sm text-foreground break-words">
                   {alternateTitles.join(", ")}
                 </span>
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
               {series.year && (
-                <span className="px-2 py-1 bg-muted text-foreground text-sm rounded">
+                <span className="px-2 py-0.5 sm:py-1 bg-muted text-foreground text-xs sm:text-sm rounded">
                   {series.year}
                 </span>
               )}
               {series.network && (
-                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-sm rounded">
+                <span className="px-2 py-0.5 sm:py-1 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs sm:text-sm rounded">
                   {series.network}
                 </span>
               )}
               {genres.map((genre: string) => (
                 <span
                   key={genre}
-                  className="px-2 py-1 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-sm rounded"
+                  className="px-2 py-0.5 sm:py-1 bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs sm:text-sm rounded"
                 >
                   {genre}
                 </span>
               ))}
             </div>
 
-            <p className="text-foreground mb-4">{series.description}</p>
+            <p className="text-xs sm:text-base text-foreground mb-3 sm:mb-4 line-clamp-6 sm:line-clamp-none">{series.description}</p>
 
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
               <div>
                 <span className="text-muted-foreground">Stato:</span>
                 <span className="ml-2 font-medium">{series.status}</span>
@@ -260,10 +261,10 @@ function SeriesDetailContent() {
             </div>
 
             {/* Preferred Language Selector */}
-            <div className="flex items-start justify-between space-x-4 mt-4 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0 sm:space-x-4 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
               <div className="space-y-1 flex-1">
-                <Label htmlFor="preferred-language">Lingua preferita</Label>
-                <p className="text-sm text-muted-foreground">
+                <Label htmlFor="preferred-language" className="text-xs sm:text-sm">Lingua preferita</Label>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Seleziona la lingua preferita per gli episodi
                 </p>
               </div>
@@ -271,7 +272,7 @@ function SeriesDetailContent() {
                 value={series.preferredLanguage}
                 onValueChange={handlePreferredLanguageChange}
               >
-                <SelectTrigger id="preferred-language" className="w-[200px]">
+                <SelectTrigger id="preferred-language" className="w-full sm:w-[200px]">
                   <SelectValue placeholder="Seleziona lingua" />
                 </SelectTrigger>
                 <SelectContent>
@@ -283,12 +284,12 @@ function SeriesDetailContent() {
             </div>
 
             {/* Absolute Numbering Switch */}
-            <div className="flex items-start justify-between space-x-4 mt-4 pt-4 border-t">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-2 sm:space-y-0 sm:space-x-4 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
               <div className="space-y-1 flex-1">
-                <Label htmlFor="absolute-numbering" className="cursor-pointer">
+                <Label htmlFor="absolute-numbering" className="cursor-pointer text-xs sm:text-sm">
                   Numerazione assoluta
                 </Label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Utilizza la numerazione assoluta degli episodi (tutte le stagioni in un'unica sequenza)
                 </p>
               </div>
@@ -303,12 +304,12 @@ function SeriesDetailContent() {
       </div>
 
       {/* Seasons */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Stagioni</h2>
+      <div className="space-y-3 sm:space-y-4">
+        <h2 className="text-xl sm:text-2xl font-bold">Stagioni</h2>
 
         {series.seasons.length === 0 ? (
-          <div className="bg-muted border rounded-lg p-8 text-center">
-            <p className="text-muted-foreground">Nessuna stagione disponibile</p>
+          <div className="bg-muted border rounded-lg p-6 sm:p-8 text-center">
+            <p className="text-sm sm:text-base text-muted-foreground">Nessuna stagione disponibile</p>
           </div>
         ) : (<>
           {seasonsToDisplay.map((season) => (

@@ -160,13 +160,13 @@ export default function DownloadQueueCard() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Download className="h-4 w-4 sm:h-5 sm:w-5" />
               Coda Download
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               {config && (
                 <>
                   {activeItems.length} attivi • {pendingItems.length} in coda
@@ -179,6 +179,7 @@ export default function DownloadQueueCard() {
               variant="ghost"
               size="sm"
               onClick={handleClearCompleted}
+              className="w-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Pulisci
@@ -186,61 +187,61 @@ export default function DownloadQueueCard() {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4">
         {error && (
-          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-2 sm:p-3">
+            <p className="text-xs sm:text-sm text-red-800 dark:text-red-200 break-words">{error}</p>
           </div>
         )}
 
         {/* Queue Items */}
         {items.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Download className="h-12 w-12 mx-auto mb-2 opacity-20" />
-            <p>Nessun download in coda</p>
+          <div className="text-center py-6 sm:py-8 text-muted-foreground">
+            <Download className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 opacity-20" />
+            <p className="text-sm sm:text-base">Nessun download in coda</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+          <div className="space-y-2 sm:space-y-3 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
             {items.map((item) => (
               <div
                 key={item.id}
-                className="border rounded-lg p-3 space-y-2"
+                className="border rounded-lg p-2 sm:p-3 space-y-2"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(item.status)}
-                      <h4 className="font-medium text-sm truncate">
+                      <h4 className="font-medium text-xs sm:text-sm truncate">
                         {item.seriesTitle}
                       </h4>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                       S{item.seasonNumber}E{item.episodeNumber} - {item.episodeTitle}
                     </p>
                   </div>
                   {(item.status === "pending" || item.status === "downloading") && (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleRemove(item.id)}
                       title={item.status === "downloading" ? "Annulla download" : "Rimuovi dalla coda"}
-                      className={item.status === "downloading" ? "text-red-600 hover:text-red-700 hover:bg-red-50" : ""}
+                      className={`h-7 w-7 sm:h-8 sm:w-8 ${item.status === "downloading" ? "text-red-600 hover:text-red-700 hover:bg-red-50" : ""}`}
                     >
                       {item.status === "downloading" ? (
-                        <StopCircle className="h-4 w-4" />
+                        <StopCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                       ) : (
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       )}
                     </Button>
                   )}
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-[10px] sm:text-xs">
                     <span className="text-muted-foreground">
                       {getStatusText(item.status)}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 sm:gap-2">
                       {item.status === "downloading" && item.downloadSpeed && (
                         <span className="text-muted-foreground">
                           {formatSpeed(item.downloadSpeed)}
@@ -260,7 +261,7 @@ export default function DownloadQueueCard() {
                     </div>
                   )}
                   {item.error && (
-                    <p className="text-xs text-red-600 dark:text-red-400">{item.error}</p>
+                    <p className="text-[10px] sm:text-xs text-red-600 dark:text-red-400 break-words">{item.error}</p>
                   )}
                 </div>
               </div>

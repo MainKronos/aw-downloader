@@ -121,8 +121,8 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-4">Tasks Programmati</h1>
+      <div className="w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Tasks Programmati</h1>
         <div className="flex items-center justify-center p-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -132,11 +132,11 @@ export default function TasksPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <h1 className="text-3xl font-bold mb-4">Tasks Programmati</h1>
+      <div className="w-full">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-4">Tasks Programmati</h1>
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200">Errore nel caricamento dei tasks: {error}</p>
-          <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+          <p className="text-sm sm:text-base text-red-800 dark:text-red-200">Errore nel caricamento dei tasks: {error}</p>
+          <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 mt-2">
             Assicurati che il backend sia in esecuzione su{" "}
             {process.env.NEXT_PUBLIC_API_URL}
           </p>
@@ -146,48 +146,49 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Tasks Programmati</h1>
-        <p className="text-muted-foreground">
+    <div className="w-full">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Tasks Programmati</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Monitora i task automatici con informazioni sulla prossima esecuzione
         </p>
       </div>
 
       {tasks.length === 0 ? (
-        <div className="bg-muted border rounded-lg p-8 text-center">
-          <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-foreground font-medium">Nessun task configurato</p>
-          <p className="text-sm text-muted-foreground mt-2">
+        <div className="bg-muted border rounded-lg p-6 sm:p-8 text-center">
+          <Clock className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm sm:text-base text-foreground font-medium">Nessun task configurato</p>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-2">
             I task automatici appariranno qui quando verranno creati
           </p>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {tasks.map((task) => (
             <div
               key={task.id}
-              className="border rounded-lg p-4 transition-colors bg-card hover:bg-muted/50"
+              className="border rounded-lg p-3 sm:p-4 transition-colors bg-card hover:bg-muted/50"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start gap-3">
+              <div className="flex flex-col sm:flex-row items-start justify-between mb-3 gap-3">
+                <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
                   <div className="mt-1">{getStatusIcon(task.status)}</div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{task.name}</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-base sm:text-lg break-words">{task.name}</h3>
                     {task.description && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1 break-words">
                         {task.description}
                       </p>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   {getStatusBadge(task.status)}
                   <Button
                     onClick={() => handleExecuteNow(task.id)}
                     disabled={task.status === "running" || executing === task.id}
                     size="sm"
                     variant="outline"
+                    className="flex-1 sm:flex-initial"
                   >
                     {executing === task.id ? (
                       <>
@@ -204,12 +205,12 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t">
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">
                     Intervallo
                   </p>
-                  <p className="text-sm font-medium">
+                  <p className="text-xs sm:text-sm font-medium">
                     Ogni {formatInterval(task.intervalMinutes)}
                   </p>
                 </div>
@@ -218,7 +219,7 @@ export default function TasksPage() {
                   <p className="text-xs text-muted-foreground mb-1">
                     Ultima Esecuzione
                   </p>
-                  <p className="text-sm font-medium">
+                  <p className="text-xs sm:text-sm font-medium">
                     {formatDate(task.lastRunAt)}
                   </p>
                 </div>
@@ -227,8 +228,8 @@ export default function TasksPage() {
                   <p className="text-xs text-muted-foreground mb-1">
                     Prossima Esecuzione
                   </p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <p className="text-xs sm:text-sm font-medium">
                       {formatDate(task.nextRunAt)}
                     </p>
                     {task.nextRunAt && (
@@ -241,11 +242,11 @@ export default function TasksPage() {
               </div>
 
               {task.lastError && (
-                <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded">
+                <div className="mt-3 sm:mt-4 p-2 sm:p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded">
                   <p className="text-xs font-medium text-red-800 dark:text-red-200 mb-1">
                     Ultimo Errore:
                   </p>
-                  <p className="text-sm text-red-700 dark:text-red-300">{task.lastError}</p>
+                  <p className="text-xs sm:text-sm text-red-700 dark:text-red-300 break-words">{task.lastError}</p>
                 </div>
               )}
             </div>

@@ -462,10 +462,10 @@ export default function ImpostazioniPage() {
   }
 
   return (
-    <div className="p-6 w-full">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Impostazioni</h1>
-        <p className="text-muted-foreground">
+    <div className="w-full">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Impostazioni</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Configura Sonarr e gli intervalli dei task automatici
         </p>
       </div>
@@ -570,12 +570,12 @@ export default function ImpostazioniPage() {
               {/* Right Column - Automation Settings */}
               <div className="space-y-4">
                 {/* Filter Anime Only Toggle */}
-                <div className="flex items-start justify-between space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="space-y-1 flex-1">
                     <Label htmlFor="filter-anime-only" className="cursor-pointer">
                       Filtra solo anime
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Considera solo le serie con tipologia &quot;Anime&quot; in Sonarr
                     </p>
                   </div>
@@ -585,14 +585,15 @@ export default function ImpostazioniPage() {
                     onCheckedChange={handleFilterAnimeOnlyToggle}
                   />
                 </div>
+                <div className="sm:hidden border-t my-4" />
 
                 {/* Auto Rename Toggle */}
-                <div className="flex items-start justify-between space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="space-y-1 flex-1">
                     <Label htmlFor="auto-rename" className="cursor-pointer">
                       Rinomina automatica
                     </Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Dopo l&apos;importazione, rinomina automaticamente i file secondo lo schema di Sonarr
                     </p>
                   </div>
@@ -602,12 +603,13 @@ export default function ImpostazioniPage() {
                     onCheckedChange={handleAutoRenameToggle}
                   />
                 </div>
+                <div className="sm:hidden border-t my-4" />
 
                 {/* Tag Mode Selector */}
-                <div className="flex items-start justify-between space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="space-y-1 flex-1">
                     <Label htmlFor="tag-mode">Modalità utilizzo tag</Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Seleziona come utilizzare i tag per filtrare le serie
                     </p>
                   </div>
@@ -615,7 +617,7 @@ export default function ImpostazioniPage() {
                     value={configInputs.sonarr_tags_mode}
                     onValueChange={handleTagModeChange}
                   >
-                    <SelectTrigger id="tag-mode">
+                    <SelectTrigger id="tag-mode" className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Seleziona modalità" />
                     </SelectTrigger>
                     <SelectContent>
@@ -624,23 +626,26 @@ export default function ImpostazioniPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="sm:hidden border-t my-4" />
 
                 {/* Tag Multi-select */}
-                <div className="flex items-start justify-between space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="space-y-1 flex-1">
                     <Label htmlFor="tags">Tag</Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Seleziona i tag da utilizzare per il filtro
                     </p>
                   </div>
-                  <MultiSelect
-                    options={sonarrTags}
-                    selected={configInputs.sonarr_tags}
-                    onChange={handleTagsChange}
-                    placeholder="Nessun tag selezionato"
-                    emptyText="Nessun tag trovato"
-                    searchPlaceholder="Cerca tag..."
-                  />
+                  <div className="w-full sm:w-auto">
+                    <MultiSelect
+                      options={sonarrTags}
+                      selected={configInputs.sonarr_tags}
+                      onChange={handleTagsChange}
+                      placeholder="Nessun tag selezionato"
+                      emptyText="Nessun tag trovato"
+                      searchPlaceholder="Cerca tag..."
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -838,10 +843,10 @@ export default function ImpostazioniPage() {
                 </div>
 
                 {/* Preferred Language Selector */}
-                <div className="flex items-start justify-between space-x-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
                   <div className="space-y-1 flex-1">
                     <Label htmlFor="preferred-language">Lingua preferita</Label>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Seleziona la lingua preferita per gli episodi
                     </p>
                   </div>
@@ -849,7 +854,7 @@ export default function ImpostazioniPage() {
                     value={configInputs.preferred_language}
                     onValueChange={handlePreferredLanguageChange}
                   >
-                    <SelectTrigger id="preferred-language" className="w-[200px]">
+                    <SelectTrigger id="preferred-language" className="w-full sm:w-[200px]">
                       <SelectValue placeholder="Seleziona lingua" />
                     </SelectTrigger>
                     <SelectContent>

@@ -100,13 +100,13 @@ export function LogsCard() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex-1">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
               Log di Sistema
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Log in tempo reale delle operazioni del server
             </CardDescription>
           </div>
@@ -115,7 +115,7 @@ export function LogsCard() {
               value={filterLevel}
               onValueChange={(value: string) => setFilterLevel(value as LogLevel | "all")}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Filtra livello" />
               </SelectTrigger>
               <SelectContent>
@@ -129,29 +129,29 @@ export function LogsCard() {
             </Select>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={autoRefresh ? "bg-green-50 dark:bg-green-950 hover:bg-green-100 dark:hover:bg-green-900" : ""}
+              className={`h-8 w-8 sm:h-9 sm:w-9 ${autoRefresh ? "bg-green-50 dark:bg-green-950 hover:bg-green-100 dark:hover:bg-green-900" : ""}`}
             >
-              <RefreshCw className={`h-4 w-4 ${autoRefresh ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 ${autoRefresh ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleClear}>
-              <Trash2 className="h-4 w-4" />
+            <Button variant="outline" size="icon" onClick={handleClear} className="h-8 w-8 sm:h-9 sm:w-9">
+              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] w-full rounded-md border p-4" ref={scrollRef}>
+        <ScrollArea className="h-[300px] sm:h-[400px] w-full rounded-md border p-2 sm:p-4" ref={scrollRef}>
           {loading ? (
-            <div className="flex items-center justify-center p-8 text-muted-foreground">
+            <div className="flex items-center justify-center p-6 sm:p-8 text-muted-foreground text-xs sm:text-sm">
               Caricamento log...
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center p-8 text-destructive">
-              <XCircle className="h-8 w-8 mb-2" />
-              <p className="font-medium">Errore di connessione</p>
-              <p className="text-sm text-muted-foreground mt-1">{error}</p>
+            <div className="flex flex-col items-center justify-center p-6 sm:p-8 text-destructive">
+              <XCircle className="h-6 w-6 sm:h-8 sm:w-8 mb-2" />
+              <p className="font-medium text-sm sm:text-base">Errore di connessione</p>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">{error}</p>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -162,30 +162,32 @@ export function LogsCard() {
               </Button>
             </div>
           ) : logs.length === 0 ? (
-            <div className="flex items-center justify-center p-8 text-muted-foreground">
+            <div className="flex items-center justify-center p-6 sm:p-8 text-muted-foreground text-xs sm:text-sm">
               Nessun log disponibile
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {logs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-start gap-3 text-sm border-b pb-2 last:border-0"
+                  className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 text-xs sm:text-sm border-b pb-1.5 sm:pb-2 last:border-0"
                 >
-                  <span className="text-xs text-muted-foreground font-mono mt-0.5 min-w-[70px]">
-                    {formatTime(log.timestamp)}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className={`${getLevelColor(log.level)} flex items-center gap-1 px-2 py-0.5`}
-                  >
-                    {getLevelIcon(log.level)}
-                    <span className="text-xs font-medium uppercase">{log.level}</span>
-                  </Badge>
-                  <Badge variant="secondary" className="text-xs">
-                    {log.category}
-                  </Badge>
-                  <span className="flex-1">{log.message}</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-[10px] sm:text-xs text-muted-foreground font-mono min-w-[60px] sm:min-w-[70px]">
+                      {formatTime(log.timestamp)}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className={`${getLevelColor(log.level)} flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs`}
+                    >
+                      {getLevelIcon(log.level)}
+                      <span className="font-medium uppercase">{log.level}</span>
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px] sm:text-xs">
+                      {log.category}
+                    </Badge>
+                  </div>
+                  <span className="flex-1 break-words pl-1 sm:pl-0">{log.message}</span>
                 </div>
               ))}
             </div>

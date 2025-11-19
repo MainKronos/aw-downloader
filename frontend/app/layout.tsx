@@ -55,7 +55,7 @@ export default function RootLayout({
                   <ThemeToggle />
                 </div>
               </header>
-              <main className="flex-1 flex justify-center p-4">
+              <main className="flex-1 flex justify-center p-4 sm:p-6">
                 <div className="w-full max-w-7xl">
                   {children}
                 </div>
