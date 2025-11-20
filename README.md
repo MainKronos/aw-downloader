@@ -47,24 +47,44 @@ Ogni task può essere configurato con un intervallo personalizzato (da 15 minuti
 
 ## 🚀 Deploy con Docker
 
-L'applicazione è progettata per funzionare in Docker con frontend e backend unificati.
+> [!IMPORTANT]
+> Per il funzionamento dell'applicazione è necessario generare una APP_KEY casuale.  
+> Per farlo deve essere utilizzato il comando 
+> ```
+> docker run --rm ghcr.io/savvymeat/aw-downloader:latest keygen
+> ```
 
-### Quick Start
+### Docker build
 
 ```bash
 # 1. Build immagine
 docker compose build
-# 2. Genera l'APP_KEY (richiesto per la sicurezza)
-docker run --rm aw-downloader:latest keygen
-# 3. Impostare la variabile d'ambiente APP_KEY=<chaive> nel file compose.yaml
 
-# 4. Avvia con Docker Compose
+# 2. Impostare la variabile d'ambiente APP_KEY=<chaive> nel file compose.yaml
+
+# 3. Avvia con Docker Compose
 docker-compose up -d
 ```
 
-> **Nota importante**: L'APP_KEY è necessaria per la sicurezza dell'applicazione. Assicurati di generarla e configurarla prima del primo avvio.
+### Docker  compose
+```yaml
+services:
+  aw-downloader:
+    image: ghcr.io/savvymeat/aw-downloader:latest
+    container_name: aw-downloader
+    ports:
+      - "6547:6547"
+    volumes:
+      - /path/to/config:/app/storage
+      ## TV Shows folders
+      - /path/to/tvseries:/data
+    environment:
+      - APP_KEY=
+    restart: unless-stopped
+```
 
-
+> [!NOTE]
+> L'applicazione viene eseguita rootless, perciò i volumi montati devono avere i corretti permessi di scrittura e lettura
 
 ## 🛠️ Sviluppo Locale
 

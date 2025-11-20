@@ -343,7 +343,7 @@ export class MetadataSyncService {
       const posterDir = app.makePath('storage/posters')
       await fs.mkdir(posterDir, { recursive: true })
 
-      const ext = path.extname(posterUrl) || '.jpg'
+      const ext = path.extname(posterUrl) || 'jpg'
       const filename = `series_${seriesId}.${ext}`
       const fullPath = path.join(posterDir, filename)
 
