@@ -101,6 +101,7 @@ export class SonarrService {
     if (!this.sonarrUrl || !this.sonarrToken) {
       throw new Error('Sonarr URL or API token not configured')
     }
+    this.sonarrUrl = this.sonarrUrl.replace(/\/+$/, '')
   }
 
   /**
