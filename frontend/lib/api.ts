@@ -45,6 +45,7 @@ export interface FetchSeriesParams {
   search?: string;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  onlyMissingLinks?: boolean;
 }
 
 export async function fetchSeriesRouterPaths(): Promise<number[]> {
@@ -56,7 +57,7 @@ export async function fetchSeriesRouterPaths(): Promise<number[]> {
 }
 
 export async function fetchSeries(params: FetchSeriesParams = {}): Promise<SeriesListResponse> {
-  const { page = 1, limit = 10, search = "", sortBy = "title", sortOrder = "asc" } = params;
+  const { page = 1, limit = 10, search = "", sortBy = "title", sortOrder = "asc", onlyMissingLinks = false } = params;
   
   const queryParams = new URLSearchParams({
     page: page.toString(),
@@ -67,6 +68,10 @@ export async function fetchSeries(params: FetchSeriesParams = {}): Promise<Serie
 
   if (search) {
     queryParams.append('search', search);
+  }
+
+  if (onlyMissingLinks) {
+    queryParams.append('onlyMissingLinks', 'true');
   }
 
   const response = await fetch(`${API_BASE_URL}/api/series?${queryParams}`);

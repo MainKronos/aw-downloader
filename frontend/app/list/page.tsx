@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -41,12 +50,32 @@ export default function ListaPage() {
   const [deleting, setDeleting] = useState(false);
   const [sortBy, setSortBy] = useState<string>("title");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const limit = 10;
+  const [onlyMissingLinks, setOnlyMissingLinks] = useState(false);
+  const [limit, setLimit] = useState<number>(() => {
+    // Recupera il valore da localStorage, default 10
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('seriesPageLimit');
+      return saved ? parseInt(saved, 10) : 10;
+    }
+    return 10;
+  });
+
+  // Salva limit in localStorage quando cambia
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('seriesPageLimit', limit.toString());
+    }
+  }, [limit]);
+
+  const handleLimitChange = (value: string) => {
+    setLimit(parseInt(value, 10));
+    setPage(1); // Reset alla prima pagina quando cambia il limite
+  };
 
   const fetchSeriesList = async () => {
     setLoading(true);
     try {
-      const data = await fetchSeries({ page, limit, search, sortBy, sortOrder });
+      const data = await fetchSeries({ page, limit, search, sortBy, sortOrder, onlyMissingLinks });
       setSeries(data.data);
       setMeta(data.meta);
       setError(null);
@@ -60,7 +89,7 @@ export default function ListaPage() {
   useEffect(() => {
     fetchSeriesList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, sortBy, sortOrder]);
+  }, [page, search, sortBy, sortOrder, limit, onlyMissingLinks]);
 
   // Create debounced search function
   const debouncedSearch = useRef(
@@ -125,11 +154,11 @@ export default function ListaPage() {
 
   const handleDeleteConfirm = async () => {
     if (!seriesIdToDelete) return;
-    
+
     setDeleting(true);
     try {
       await deleteSeries(seriesIdToDelete);
-      
+
       // Refresh the list
       await fetchSeriesList();
       setDeleteDialogOpen(false);
@@ -163,39 +192,56 @@ export default function ListaPage() {
 
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="mb-4 sm:mb-6">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1 sm:max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              type="text"
-              value={searchInput}
-              onChange={handleSearchInputChange}
-              placeholder="Cerca per titolo..."
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={loading} className="flex-1 sm:flex-initial">
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Cerca"
-              )}
-            </Button>
-            {search && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setSearch("");
-                  setSearchInput("");
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              <div className="relative flex-1 sm:max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  type="text"
+                  value={searchInput}
+                  onChange={handleSearchInputChange}
+                  placeholder="Cerca per titolo..."
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={loading} className="flex-1 sm:flex-initial">
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Cerca"
+                  )}
+                </Button>
+                {search && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSearch("");
+                      setSearchInput("");
+                      setPage(1);
+                    }}
+                    className="flex-1 sm:flex-initial"
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="missing-links"
+                checked={onlyMissingLinks}
+                onCheckedChange={(checked) => {
+                  setOnlyMissingLinks(checked);
                   setPage(1);
                 }}
-                className="flex-1 sm:flex-initial"
-              >
-                Reset
-              </Button>
-            )}
+              />
+              <Label htmlFor="missing-links" className="text-sm cursor-pointer whitespace-nowrap">
+                Solo link mancanti
+              </Label>
+            </div>
           </div>
         </div>
       </form>
@@ -290,13 +336,12 @@ export default function ListaPage() {
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
                     <span
-                      className={`inline-block px-2 py-1 text-xs rounded-full ${
-                        s.status === "continuing"
+                      className={`inline-block px-2 py-1 text-xs rounded-full ${s.status === "continuing"
                           ? "bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300"
                           : s.status === "ended"
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
-                      }`}
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300"
+                        }`}
                     >
                       {s.status}
                     </span>
@@ -353,12 +398,13 @@ export default function ListaPage() {
       </div>
 
       {/* Pagination */}
-      {meta && meta.lastPage > 1 && (
-        <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
-            Pagina {meta.currentPage} di {meta.lastPage} ({meta.total} totali)
-          </div>
-          <div className="flex gap-2 order-1 sm:order-2">
+
+      <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="text-xs sm:text-sm text-muted-foreground order-2 sm:order-1">
+          {meta && meta.lastPage > 1 && `Pagina ${meta.currentPage} di ${meta.lastPage} (${meta.total} totali)`}
+        </div>
+        <div className="flex gap-2 order-1 sm:order-2">
+          {meta && meta.lastPage > 1 && (
             <Button
               variant="outline"
               size="sm"
@@ -368,6 +414,19 @@ export default function ListaPage() {
               <ChevronLeft className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Precedente</span>
             </Button>
+          )}
+          <Select value={limit.toString()} onValueChange={handleLimitChange} >
+            <SelectTrigger className="w-[70px] h-8 text-xs" size="sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          {meta && meta.lastPage > 1 && (
             <Button
               variant="outline"
               size="sm"
@@ -377,9 +436,9 @@ export default function ListaPage() {
               <span className="hidden sm:inline">Successiva</span>
               <ChevronRight className="h-4 w-4 sm:ml-1" />
             </Button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

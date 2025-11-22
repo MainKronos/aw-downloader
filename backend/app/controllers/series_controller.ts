@@ -16,6 +16,7 @@ export default class SeriesController {
       const search = request.input('search', '')
       const sortBy = request.input('sortBy', 'title') // title, status, missingEpisodes
       const sortOrder = request.input('sortOrder', 'asc') // asc, desc
+      const onlyMissingLinks = request.input('onlyMissingLinks', false)
 
       const query = Series.query().preload('seasons')
 
@@ -25,6 +26,17 @@ export default class SeriesController {
             .where('title', 'like', `%${search}%`)
             .orWhere('description', 'like', `%${search}%`)
             .orWhere('alternate_titles', 'like', `%${search}%`)
+        })
+      }
+
+      // Filter for series with missing download links
+      if (onlyMissingLinks === true || onlyMissingLinks === 'true') {
+        query.whereHas('seasons', (seasonQuery) => {
+          seasonQuery
+            .where('deleted', false)
+            .where((builder) => {
+              builder.whereNull('download_urls').orWhere('download_urls', '')
+            })
         })
       }
 
