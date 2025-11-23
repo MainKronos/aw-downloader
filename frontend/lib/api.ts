@@ -51,7 +51,10 @@ export interface FetchSeriesParams {
 export async function fetchSeriesRouterPaths(): Promise<number[]> {
   
   const response = await fetch(`${API_BASE_URL}/api/series/router-paths`);
-  if (!response.ok) throw new Error("Failed to fetch series");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch series");
+  }
   
   return response.json();
 }
@@ -75,7 +78,10 @@ export async function fetchSeries(params: FetchSeriesParams = {}): Promise<Serie
   }
 
   const response = await fetch(`${API_BASE_URL}/api/series?${queryParams}`);
-  if (!response.ok) throw new Error("Failed to fetch series");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch series");
+  }
   
   return response.json();
 }
@@ -111,7 +117,10 @@ export interface SeriesDetail extends Omit<Series, 'totalMissingEpisodes' | 'del
 
 export async function fetchSeriesById(id: number): Promise<SeriesDetail> {
   const response = await fetch(`${API_BASE_URL}/api/series/${id}`);
-  if (!response.ok) throw new Error("Series not found");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Series not found");
+  }
   
   return response.json();
 }
@@ -121,7 +130,10 @@ export async function deleteSeries(id: number): Promise<{ message: string }> {
     method: "DELETE",
   });
   
-  if (!response.ok) throw new Error("Failed to delete series");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to delete series");
+  }
   
   return response.json();
 }
@@ -131,7 +143,10 @@ export async function syncSeriesMetadata(id: number): Promise<{ message: string;
     method: "POST",
   });
   
-  if (!response.ok) throw new Error("Failed to sync metadata");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to sync metadata");
+  }
   
   return response.json();
 }
@@ -153,7 +168,10 @@ export async function updateSeries(
     body: JSON.stringify(params),
   });
   
-  if (!response.ok) throw new Error("Failed to update series");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update series");
+  }
   
   return response.json();
 }
@@ -178,7 +196,10 @@ export async function updateSeasonDownloadUrls(
     body: JSON.stringify(params),
   });
   
-  if (!response.ok) throw new Error("Failed to update download URLs");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update download URLs");
+  }
   
   return response.json();
 }
@@ -199,7 +220,10 @@ export interface Task {
 
 export async function fetchTasks(): Promise<Task[]> {
   const response = await fetch(`${API_BASE_URL}/api/tasks`);
-  if (!response.ok) throw new Error("Failed to fetch tasks");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch tasks");
+  }
   
   const data = await response.json();
   return data;
@@ -210,7 +234,10 @@ export async function executeTask(taskId: string): Promise<{ message: string; ta
     method: "POST",
   });
   
-  if (!response.ok) throw new Error("Failed to execute task");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to execute task");
+  }
   
   return response.json();
 }
@@ -224,7 +251,10 @@ export async function updateTaskInterval(taskId: string, intervalMinutes: number
     body: JSON.stringify({ intervalMinutes }),
   });
   
-  if (!response.ok) throw new Error("Failed to update task interval");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update task interval");
+  }
 }
 
 // ============================================
@@ -238,7 +268,10 @@ export interface Config {
 
 export async function fetchConfigs(): Promise<Record<string, string>> {
   const response = await fetch(`${API_BASE_URL}/api/configs`);
-  if (!response.ok) throw new Error("Failed to fetch configs");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch configs");
+  }
   
   return response.json();
 }
@@ -252,7 +285,10 @@ export async function updateConfig(key: string, value: any): Promise<{ key: stri
     body: JSON.stringify({ key, value }),
   });
   
-  if (!response.ok) throw new Error("Failed to update config");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update config");
+  }
   
   return response.json();
 }
@@ -292,14 +328,20 @@ export interface QueueResponse {
 
 export async function fetchDownloadQueue(): Promise<QueueResponse> {
   const response = await fetch(`${API_BASE_URL}/api/download-queue`);
-  if (!response.ok) throw new Error("Failed to fetch download queue");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch download queue");
+  }
   
   return response.json();
 }
 
 export async function fetchQueueConfig(): Promise<QueueConfig> {
   const response = await fetch(`${API_BASE_URL}/api/download-queue/config`);
-  if (!response.ok) throw new Error("Failed to fetch queue config");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch queue config");
+  }
   
   return response.json();
 }
@@ -323,7 +365,10 @@ export async function addToDownloadQueue(params: AddToQueueParams): Promise<{ me
     body: JSON.stringify(params),
   });
   
-  if (!response.ok) throw new Error("Failed to add to queue");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to add to queue");
+  }
   
   return response.json();
 }
@@ -333,7 +378,10 @@ export async function removeFromQueue(id: string): Promise<{ message: string }> 
     method: "DELETE",
   });
   
-  if (!response.ok) throw new Error("Failed to remove from queue");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to remove from queue");
+  }
   
   return response.json();
 }
@@ -343,7 +391,10 @@ export async function clearCompletedQueue(): Promise<{ message: string }> {
     method: "DELETE",
   });
   
-  if (!response.ok) throw new Error("Failed to clear completed items");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to clear completed items");
+  }
   
   return response.json();
 }
@@ -415,7 +466,10 @@ export async function fetchLogs(params: FetchLogsParams = {}): Promise<LogsRespo
 export async function fetchLogStats(): Promise<LogStats> {
   const response = await fetch(`${API_BASE_URL}/api/logs/stats`);
   
-  if (!response.ok) throw new Error("Failed to fetch log stats");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch log stats");
+  }
   
   return response.json();
 }
@@ -425,7 +479,10 @@ export async function clearLogs(): Promise<{ message: string }> {
     method: "DELETE",
   });
   
-  if (!response.ok) throw new Error("Failed to clear logs");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to clear logs");
+  }
   
   return response.json();
 }
@@ -456,7 +513,10 @@ export interface SyncRootFoldersResponse {
 export async function fetchRootFolders(): Promise<RootFolder[]> {
   const response = await fetch(`${API_BASE_URL}/api/root-folders`);
   
-  if (!response.ok) throw new Error("Failed to fetch root folders");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch root folders");
+  }
   
   return response.json();
 }
@@ -486,10 +546,110 @@ export async function updateRootFolderMapping(
     body: JSON.stringify({ mappedPath }),
   });
   
-  if (!response.ok) throw new Error("Failed to update root folder mapping");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update root folder mapping");
+  }
   
   return response.json();
 }
+
+// ============================================
+// NOTIFICATIONS API
+// ============================================
+
+export interface Notification {
+  id: number;
+  name: string;
+  url: string;
+  enabled: boolean;
+  events: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  const response = await fetch(`${API_BASE_URL}/api/notifications`);
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch notifications");
+  }
+  
+  return response.json();
+}
+
+export async function createNotification(
+  name: string,
+  url: string,
+  enabled: boolean = true,
+  events: string[] = []
+): Promise<Notification> {
+  const response = await fetch(`${API_BASE_URL}/api/notifications`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, url, enabled, events }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to create notification");
+  }
+  
+  return response.json();
+}
+
+export async function updateNotification(
+  id: number,
+  data: { name?: string; url?: string; enabled?: boolean; events?: string[] }
+): Promise<Notification> {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update notification");
+  }
+  
+  return response.json();
+}
+
+export async function deleteNotification(id: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/${id}`, {
+    method: "DELETE",
+  });
+  
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to delete notification");
+  }
+  
+  return response.json();
+}
+
+export async function testNotification(id: number): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/${id}/test`, {
+    method: "POST",
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to test notification");
+  }
+  
+  return response.json();
+}
+
+// ============================================
+// HEALTH CHECK API
+// ============================================
 
 // Health check types and functions
 export interface SonarrHealthStatus {
@@ -500,7 +660,10 @@ export interface SonarrHealthStatus {
 
 export async function checkSonarrHealth(): Promise<SonarrHealthStatus> {
   const response = await fetch(`${API_BASE_URL}/api/health/sonarr`);
-  if (!response.ok) throw new Error("Failed to check Sonarr health");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to check Sonarr health");
+  }
   return response.json();
 }
 
@@ -508,13 +671,19 @@ export async function forceSonarrHealthCheck(): Promise<SonarrHealthStatus> {
   const response = await fetch(`${API_BASE_URL}/api/health/sonarr/force`, {
     method: "POST",
   });
-  if (!response.ok) throw new Error("Failed to force Sonarr health check");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to force Sonarr health check");
+  }
   return response.json();
 }
 
 export async function getSonarrStatus(): Promise<SonarrHealthStatus> {
   const response = await fetch(`${API_BASE_URL}/api/health/sonarr/status`);
-  if (!response.ok) throw new Error("Failed to get Sonarr status");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to get Sonarr status");
+  }
   return response.json();
 }
 
@@ -524,7 +693,10 @@ export interface AppVersion {
 
 export async function fetchAppVersion(): Promise<AppVersion> {
   const response = await fetch(`${API_BASE_URL}/api/health/version`);
-  if (!response.ok) throw new Error("Failed to fetch app version");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch app version");
+  }
   return response.json();
 }
 
@@ -539,6 +711,9 @@ export interface SonarrTag {
 
 export async function fetchSonarrTags(): Promise<SonarrTag[]> {
   const response = await fetch(`${API_BASE_URL}/api/sonarr/tags`);
-  if (!response.ok) throw new Error("Failed to fetch Sonarr tags");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch Sonarr tags");
+  }
   return response.json();
 }

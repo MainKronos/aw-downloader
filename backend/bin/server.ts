@@ -35,6 +35,7 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
       await import('#start/env')
     })
     app.ready(async () => {
+      await import('#start/events')
       const { logger } = await import('#services/logger_service')
       logger.success('System', 'Server started successfully')
     })

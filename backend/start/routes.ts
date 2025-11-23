@@ -16,6 +16,7 @@ const ConfigsController = () => import('#controllers/configs_controller')
 const DownloadQueueController = () => import('#controllers/download_queue_controller')
 const LogsController = () => import('#controllers/logs_controller')
 const RootFoldersController = () => import('#controllers/root_folders_controller')
+const NotificationsController = () => import('#controllers/notifications_controller')
 const HealthController = () => import('#controllers/health_controller')
 const SonarrController = () => import('#controllers/sonarr_controller')
 
@@ -81,6 +82,15 @@ router.group(() => {
     router.post('/sync', [RootFoldersController, 'sync'])
     router.put('/:id/mapping', [RootFoldersController, 'updateMapping'])
   }).prefix('/root-folders')
+
+  // Notifications routes
+  router.group(() => {
+    router.get('/', [NotificationsController, 'index'])
+    router.post('/', [NotificationsController, 'store'])
+    router.put('/:id', [NotificationsController, 'update'])
+    router.delete('/:id', [NotificationsController, 'destroy'])
+    router.post('/:id/test', [NotificationsController, 'test'])
+  }).prefix('/notifications')
 
   // Health check routes
   router.group(() => {

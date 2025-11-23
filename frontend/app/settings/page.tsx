@@ -9,7 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, Save, Loader2, Server, Settings2, AlertTriangle, RefreshCw, FolderOpen, Pencil, Check, X, AlertTriangleIcon } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { NotificationDialog } from "@/components/notification-dialog";
+import { Clock, Save, Loader2, Server, Settings2, AlertTriangle, RefreshCw, FolderOpen, Pencil, Check, X, AlertTriangleIcon, Bell, Trash2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { debounce } from "lodash";
 import {
@@ -22,8 +24,13 @@ import {
   updateRootFolderMapping,
   forceSonarrHealthCheck,
   fetchSonarrTags,
+  fetchNotifications,
+  updateNotification,
+  deleteNotification,
+  testNotification,
   type RootFolder,
   type SonarrTag,
+  type Notification,
 } from "@/lib/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -102,6 +109,20 @@ interface ConfigInputs {
   concurrent_downloads: string;
 }
 
+const EventsBadge = ({ notification }: { notification: Notification }) => {
+  return (<div className="flex items-center gap-1 pl-11">
+    {notification.events.length === 1 ? (
+      <span className="text-xs bg-muted px-2 py-0.5 rounded">
+        {notification.events[0] === 'onDownloadSuccessful' ? 'Download Completato' : 'Errore Download'}
+      </span>
+    ) : (
+      <span className="text-xs bg-muted px-2 py-0.5 rounded">
+        {notification.events.length} eventi
+      </span>
+    )}
+  </div>)
+}
+
 export default function ImpostazioniPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [intervals, setIntervals] = useState<Record<string, number>>({});
@@ -123,11 +144,18 @@ export default function ImpostazioniPage() {
   const [rootFolders, setRootFolders] = useState<RootFolder[]>([]);
   const [editingMappingId, setEditingMappingId] = useState<number | null>(null);
   const [mappingInputs, setMappingInputs] = useState<Record<number, string>>({});
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [notificationToDelete, setNotificationToDelete] = useState<{ id: number; name: string } | null>(null);
 
   // Use transitions for loading states
   const [isSavingConfig, startSavingConfig] = useTransition();
   const [isSyncingRootFolders, startSyncingRootFolders] = useTransition();
+  const [isDeletingNotification, startDeletingNotification] = useTransition();
+  const [isTestingNotification, startTestingNotification] = useTransition();
   const [savingConfigKey, setSavingConfigKey] = useState<string | null>(null);
+  const [testingNotificationId, setTestingNotificationId] = useState<number | null>(null);
+  const [deletingNotificationId, setDeletingNotificationId] = useState<number | null>(null);
 
   // Calculate total concurrent requests
   const totalConcurrentRequests = useMemo(() => {
@@ -190,6 +218,7 @@ export default function ImpostazioniPage() {
     fetchConfigsList();
     fetchRootFoldersList();
     fetchSonarrTagsList();
+    fetchNotificationsList();
   }, []);
 
   // Handler for config changes (download workers, concurrent downloads)
@@ -290,6 +319,64 @@ export default function ImpostazioniPage() {
     } catch (err) {
       console.error("Error fetching Sonarr tags:", err);
     }
+  };
+
+  const fetchNotificationsList = async () => {
+    try {
+      const data = await fetchNotifications();
+      setNotifications(data);
+    } catch (err) {
+      console.error("Error fetching notifications:", err);
+    }
+  };
+
+  const handleToggleNotification = async (id: number, enabled: boolean) => {
+    try {
+      await updateNotification(id, { enabled });
+      await fetchNotificationsList();
+      toast.success(enabled ? "Notifica attivata" : "Notifica disattivata");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Errore aggiornamento notifica");
+    }
+  };
+
+  const handleDeleteNotification = (id: number, name: string) => {
+    setNotificationToDelete({ id, name });
+    setDeleteAlertOpen(true);
+  };
+
+  const confirmDeleteNotification = () => {
+    if (!notificationToDelete) return;
+
+    const { id } = notificationToDelete;
+    setDeletingNotificationId(id);
+    startDeletingNotification(async () => {
+      try {
+        await deleteNotification(id);
+        await fetchNotificationsList();
+        toast.success("Notifica eliminata");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Errore eliminazione notifica");
+      } finally {
+        setDeletingNotificationId(null);
+        setDeleteAlertOpen(false);
+        setNotificationToDelete(null);
+      }
+    });
+  };
+
+  const handleTestNotification = (id: number) => {
+    setTestingNotificationId(id);
+    startTestingNotification(async () => {
+      try {
+        await testNotification(id);
+        toast.success("Notifica di test inviata");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Errore invio notifica di test");
+      } finally {
+        setTestingNotificationId(null);
+      }
+    });
   };
 
   const handleSyncRootFolders = () => {
@@ -928,6 +1015,137 @@ export default function ImpostazioniPage() {
           </CardContent>
         </Card>
 
+        {/* Notifications */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Bell className="h-5 w-5" />
+                  Notifiche
+                </CardTitle>
+                <CardDescription>
+                  Configura le notifiche per i download
+                </CardDescription>
+              </div>
+              <NotificationDialog onSuccess={fetchNotificationsList} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Notifications list */}
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bell className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                <p>Nessuna notifica configurata</p>
+                <p className="text-sm mt-1">
+                  Clicca su "Aggiungi" per configurare la tua prima notifica
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className="flex flex-col sm:grid sm:grid-cols-[auto_1fr_auto_auto_auto] gap-2 sm:gap-4 sm:items-center py-3 border-b last:border-b-0"
+                  >
+                    {/* First row on mobile: Toggle + Name/URL + Actions */}
+                    <div className="flex items-center gap-3 sm:contents">
+                      {/* Toggle */}
+                      <Switch
+                        checked={notification.enabled}
+                        onCheckedChange={(checked) => handleToggleNotification(notification.id, checked)}
+                      />
+
+                      {/* Name and URL */}
+                      <div className="min-w-0 flex-1 sm:flex-none">
+                        <p className="text-sm font-medium">{notification.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground truncate">{notification.url}</p>
+                          {/* Events badge - visible on desktop next to URL */}
+                          {notification.events && notification.events.length > 0 && (
+                            <div className="hidden sm:block flex-shrink-0">
+                              <EventsBadge notification={notification} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Actions - visible on mobile in first row */}
+                      <div className="flex items-center gap-1 sm:contents">
+                        {/* Edit Button */}
+                        <NotificationDialog
+                          notification={notification}
+                          onSuccess={fetchNotificationsList}
+                        />
+
+                        {/* Test Button */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleTestNotification(notification.id)}
+                          disabled={isTestingNotification && testingNotificationId === notification.id}
+                          title="Invia notifica di test"
+                        >
+                          {isTestingNotification && testingNotificationId === notification.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Send className="h-4 w-4" />
+                          )}
+                        </Button>
+
+                        {/* Delete Button */}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                          onClick={() => handleDeleteNotification(notification.id, notification.name)}
+                          disabled={isDeletingNotification && deletingNotificationId === notification.id}
+                          title="Elimina"
+                        >
+                          {isDeletingNotification && deletingNotificationId === notification.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Second row on mobile: Events (if any) */}
+                    {notification.events && notification.events.length > 0 && (
+                      <div className="sm:hidden">
+                        <EventsBadge notification={notification}></EventsBadge>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Delete Confirmation AlertDialog */}
+        <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
+              <AlertDialogDescription>
+                Sei sicuro di voler eliminare la notifica &quot;{notificationToDelete?.name}&quot;?
+                Questa azione non può essere annullata.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annulla</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDeleteNotification}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Elimina
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         {/* Tasks Configuration */}
         <Card>
           <CardHeader>

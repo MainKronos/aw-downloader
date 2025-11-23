@@ -1,7 +1,7 @@
 ARG NODE_IMAGE=node:20-alpine
 
 FROM $NODE_IMAGE AS base
-RUN apk --no-cache add dumb-init
+RUN apk --no-cache add dumb-init apprise
 RUN mkdir -p /app && chown node:node /app
 WORKDIR /app
 USER node

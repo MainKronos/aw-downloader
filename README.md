@@ -33,6 +33,14 @@ Ogni task può essere configurato con un intervallo personalizzato (da 15 minuti
 #### Root Folders
 - **Mappatura percorsi**: converti i percorsi di Sonarr in percorsi locali del container
 
+#### Notifiche
+- **Gestione Notifiche tramite Apprise**: configurazione di notifiche per eventi di download
+- **Eventi configurabili**:
+  - Download Completato: notifica quando un episodio viene scaricato con successo
+  - Errore Download: notifica quando un download fallisce
+- **Protocolli supportati**: Telegram, Discord, Webhook e tutti i servizi supportati da Apprise
+- **Notifiche multiple**: possibilità di configurare più destinazioni con eventi diversi
+
 #### AnimeWorld
 - **URL Base configurabile**: supporto per cambio url di riferimento animeworld
 - **Lingua preferita globale**: imposta la preferenza predefinita (dub/sub/dub con fallback)

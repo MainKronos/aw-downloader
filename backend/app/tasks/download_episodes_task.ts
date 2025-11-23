@@ -4,7 +4,10 @@ import Series from '#models/series'
 import { getDownloadQueue } from '#services/download_queue'
 import { logger } from '#services/logger_service'
 import { getSonarrService } from '#services/sonarr_service'
+import DownloadSuccessEvent from '#events/download_success_event'
+import DownloadErrorEvent from '#events/download_error_event'
 import app from '@adonisjs/core/services/app'
+import emitter from '@adonisjs/core/services/emitter'
 import axios from 'axios'
 import { createWriteStream } from 'fs'
 import fs from 'fs/promises'
@@ -131,11 +134,30 @@ export class DownloadEpisodesTask {
       // Mark as completed
       queue.completeItem(queueItemId)
       
+      // Emit download success event
+      const successEvent = new DownloadSuccessEvent({
+        seriesTitle: params.seriesTitle,
+        seasonNumber: params.seasonNumber,
+        episodeNumber: params.episodeNumber,
+        episodeTitle: params.episodeTitle,
+      })
+      await emitter.emit(DownloadSuccessEvent, successEvent)
+      
     } catch (error) {
       // Mark as failed
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       queue.failItem(queueItemId, errorMessage)
       console.error(`Download failed for ${params.seriesTitle} S${params.seasonNumber}E${params.episodeNumber}:`, error)
+      
+      // Emit download error event
+      const errorEvent = new DownloadErrorEvent({
+        seriesTitle: params.seriesTitle,
+        seasonNumber: params.seasonNumber,
+        episodeNumber: params.episodeNumber,
+        episodeTitle: params.episodeTitle,
+        error: errorMessage,
+      })
+      await emitter.emit(DownloadErrorEvent, errorEvent)
     }
   }
   
