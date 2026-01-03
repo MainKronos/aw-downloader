@@ -34,31 +34,50 @@ export class FetchWantedTask extends BaseTask {
     const tagsConfig = await Config.get<Array<{ value: string; label: string }>>('sonarr_tags')
     const tagIds = tagsConfig?.map((tag) => parseInt(tag.value)) || []
 
-    // Fetch wanted/missing episodes from Sonarr
-    const response = await this.sonarrService.getWantedMissingEpisodes(
-      100,
-      'airDateUtc',
-      'ascending'
-    )
+    // Fetch wanted/missing episodes from Sonarr (all pages)
+    this.wantedEpisodes = []
+    let currentPage = 1
+    let totalRecords = 0
+    const pageSize = 100
 
-    // Filter out episodes without valid seriesId
-    this.wantedEpisodes = response.records
-      .filter(
-        (ep) => ep.seriesId && ep.seasonNumber !== undefined && ep.episodeNumber !== undefined
+    do {
+      const response = await this.sonarrService.getWantedMissingEpisodes(
+        pageSize,
+        'airDateUtc',
+        'ascending',
+        currentPage
       )
-      .filter((ep) => !filterAnimeOnly || ep.series?.seriesType === 'anime')
-      .filter((ep) => {
-        if (!tagsMode || tagIds.length === 0) {
+
+      totalRecords = response.totalRecords
+
+      // Filter and add episodes from current page
+      const filteredEpisodes = response.records
+        .filter(
+          (ep) => ep.seriesId && ep.seasonNumber !== undefined && ep.episodeNumber !== undefined
+        )
+        .filter((ep) => !filterAnimeOnly || ep.series?.seriesType === 'anime')
+        .filter((ep) => {
+          if (!tagsMode || tagIds.length === 0) {
+            return true
+          }
+          const seriesTags = ep.series.tags || []
+          if (tagsMode === 'blacklist') {
+            return !tagIds.some((tagId) => seriesTags.includes(tagId))
+          } else if (tagsMode === 'whitelist') {
+            return tagIds.some((tagId) => seriesTags.includes(tagId))
+          }
           return true
-        }
-        const seriesTags = ep.series.tags || []
-        if (tagsMode === 'blacklist') {
-          return !tagIds.some((tagId) => seriesTags.includes(tagId))
-        } else if (tagsMode === 'whitelist') {
-          return tagIds.some((tagId) => seriesTags.includes(tagId))
-        }
-        return true
-      })
+        })
+
+      this.wantedEpisodes.push(...filteredEpisodes)
+
+      logger.debug(
+        'FetchWanted',
+        `Page ${currentPage}: Found ${filteredEpisodes.length} episodes`
+      )
+
+      currentPage++
+    } while ((currentPage - 1) * pageSize < totalRecords)
 
     logger.info('FetchWanted', `Found ${this.wantedEpisodes.length} wanted/missing episodes`)
 

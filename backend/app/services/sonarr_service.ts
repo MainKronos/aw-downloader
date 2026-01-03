@@ -260,7 +260,8 @@ export class SonarrService {
   async getWantedMissingEpisodes(
     pageSize: number = 100,
     sortKey: string = 'airDateUtc',
-    sortDirection: 'ascending' | 'descending' = 'descending'
+    sortDirection: 'ascending' | 'descending' = 'descending',
+    page: number = 1
   ): Promise<SonarrWantedResponse> {
     this.ensureInitialized()
 
@@ -272,6 +273,7 @@ export class SonarrService {
             'X-Api-Key': this.sonarrToken,
           },
           params: {
+            page,
             pageSize,
             sortKey,
             sortDirection,
