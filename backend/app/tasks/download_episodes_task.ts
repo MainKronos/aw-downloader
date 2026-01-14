@@ -363,7 +363,7 @@ export class DownloadEpisodesTask {
       const seasonStr = params.seasonNumber.toString().padStart(2, '0')
       const episodeStr = params.episodeNumber.toString().padStart(2, '0')
       const extension = path.extname(downloadedFilePath)
-      const sonarrFilename = `${params.seriesTitle} - S${seasonStr}E${episodeStr}${extension}`
+      const sonarrFilename = params.seriesTitle.replace(/[/\\?%*:|"<>]/g, '-') + ` - S${seasonStr}E${episodeStr}${extension}`
       const destinationPath = path.join(localSeriesPath, sonarrFilename)
 
       logger.info('DownloadTask', `Copying file to Sonarr folder: ${destinationPath}`)
